@@ -1,4 +1,4 @@
-package com.example.truthordare.views
+package com.cafeteria.verdadeoudesafio.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,13 +25,11 @@ import com.cafeteria.verdadeoudesafio.ui.theme.*
 @Composable
 fun OptionsScreen(
     bottleImageUri: Uri?,
-    customTruths: List<String>,
-    customDares: List<String>,
     onBottleImageChanged: (Uri?) -> Unit,
-    onAddTruth: (String) -> Unit,
-    onRemoveTruth: (Int) -> Unit,
-    onAddDare: (String) -> Unit,
-    onRemoveDare: (Int) -> Unit,
+    customTruths: MutableList<String>,
+    customDares: MutableList<String>,
+    onTruthsChanged: (MutableList<String>) -> Unit,
+    onDaresChanged: (MutableList<String>) -> Unit,
     onBack: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -142,11 +140,15 @@ fun OptionsScreen(
                     onNewQuestionChanged = { newTruth = it },
                     onAdd = {
                         if (newTruth.isNotBlank()) {
-                            onAddTruth(newTruth)
+                            customTruths.add(newTruth)
+                            onTruthsChanged(customTruths)
                             newTruth = ""
                         }
                     },
-                    onDelete = onRemoveTruth,
+                    onDelete = { index ->
+                        customTruths.removeAt(index)
+                        onTruthsChanged(customTruths)
+                    },
                     color = NeonBlue
                 )
                 1 -> QuestionsListTab(
@@ -155,11 +157,15 @@ fun OptionsScreen(
                     onNewQuestionChanged = { newDare = it },
                     onAdd = {
                         if (newDare.isNotBlank()) {
-                            onAddDare(newDare)
+                            customDares.add(newDare)
+                            onDaresChanged(customDares)
                             newDare = ""
                         }
                     },
-                    onDelete = onRemoveDare,
+                    onDelete = { index ->
+                        customDares.removeAt(index)
+                        onDaresChanged(customDares)
+                    },
                     color = NeonRed
                 )
             }

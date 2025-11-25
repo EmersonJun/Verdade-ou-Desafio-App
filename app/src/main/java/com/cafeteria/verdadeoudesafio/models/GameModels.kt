@@ -1,48 +1,8 @@
-package com.example.truthordare.models
-
-import android.net.Uri
-
-data class Player(
-    val name: String
-)
-
-data class GameRound(
-    val challenger: String,
-    val challenged: String,
-    val option: GameOption,
-    val question: String
-)
-
-enum class GameOption {
-    TRUTH, DARE
-}
+package com.cafeteria.verdadeoudesafio.models
 
 enum class GameState {
-    MAIN_MENU,
-    OPTIONS,
-    SETUP,
-    SPINNING,
-    PLAYERS_REVEAL,
-    CHOOSE,
-    QUESTION_TYPE,
-    RESULT
+    MAIN_MENU, OPTIONS, SETUP, SPINNING, PLAYERS_REVEAL, CHOOSE, QUESTION_TYPE, RESULT
 }
-
-data class GameSettings(
-    val bottleImageUri: Uri? = null,
-    val customTruths: MutableList<String> = truthQuestions.toMutableList(),
-    val customDares: MutableList<String> = dareQuestions.toMutableList()
-)
-
-data class GameData(
-    val players: List<String> = emptyList(),
-    val currentChallenger: String = "",
-    val currentChallenged: String = "",
-    val selectedOption: String? = null,
-    val currentQuestion: String = "",
-    val gameState: GameState = GameState.MAIN_MENU,
-    val settings: GameSettings = GameSettings()
-)
 
 val truthQuestions = listOf(
     "Qual foi a maior vergonha que você já passou em público?",

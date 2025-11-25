@@ -1,4 +1,4 @@
-package com.example.truthordare.views
+package com.cafeteria.verdadeoudesafio.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,8 +23,7 @@ import com.cafeteria.verdadeoudesafio.ui.theme.*
 @Composable
 fun SetupScreen(
     players: List<String>,
-    onAddPlayer: (String) -> Unit,
-    onRemovePlayer: (String) -> Unit,
+    onPlayersChanged: (List<String>) -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -98,7 +97,7 @@ fun SetupScreen(
                 Button(
                     onClick = {
                         if (newPlayerName.isNotBlank()) {
-                            onAddPlayer(newPlayerName)
+                            onPlayersChanged(players + newPlayerName)
                             newPlayerName = ""
                         }
                     },
@@ -149,7 +148,9 @@ fun SetupScreen(
                                 fontWeight = FontWeight.Medium
                             )
                             TextButton(
-                                onClick = { onRemovePlayer(player) }
+                                onClick = {
+                                    onPlayersChanged(players.filter { it != player })
+                                }
                             ) {
                                 Text("REMOVER", color = NeonRed, fontWeight = FontWeight.Bold)
                             }
