@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,12 +34,15 @@ fun SetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        // Botão voltar fixo no topo
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 32.dp)
+                .align(Alignment.Start),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
@@ -51,15 +55,15 @@ fun SetupScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(0.3f))
-
         Text(
             text = "ADICIONAR JOGADORES",
             fontSize = 28.sp,
             fontWeight = FontWeight.Black,
             color = NeonRed,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier
+                .padding(bottom = 32.dp)
+                .shadow(elevation = 30.dp, spotColor = NeonRed)
         )
 
         Card(
@@ -118,7 +122,7 @@ fun SetupScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .heightIn(max = 200.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkCard),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -160,7 +164,7 @@ fun SetupScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onStart,
@@ -180,7 +184,5 @@ fun SetupScreen(
                 fontWeight = FontWeight.Black
             )
         }
-
-        Spacer(modifier = Modifier.weight(0.2f))
     }
 }

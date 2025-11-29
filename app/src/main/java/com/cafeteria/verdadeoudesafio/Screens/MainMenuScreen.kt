@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,7 +19,11 @@ import androidx.compose.ui.unit.sp
 import com.cafeteria.verdadeoudesafio.ui.theme.*
 
 @Composable
-fun MainMenuScreen(onPlay: () -> Unit, onOptions: () -> Unit) {
+fun MainMenuScreen(
+    onPlay: () -> Unit,
+    onOptions: () -> Unit,
+    onReset: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -33,6 +38,21 @@ fun MainMenuScreen(onPlay: () -> Unit, onOptions: () -> Unit) {
             ),
         contentAlignment = Alignment.Center
     ) {
+        // Botão Reset no canto superior direito
+        IconButton(
+            onClick = onReset,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Resetar Pontuações",
+                tint = Color.Gray,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -112,6 +132,16 @@ fun MainMenuScreen(onPlay: () -> Unit, onOptions: () -> Unit) {
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Texto informativo sobre reset
+            Text(
+                text = "Toque no ícone ↻ para resetar pontuações",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
         }
     }
 }

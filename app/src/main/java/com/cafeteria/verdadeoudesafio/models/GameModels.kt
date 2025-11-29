@@ -1,7 +1,43 @@
 package com.cafeteria.verdadeoudesafio.models
 
 enum class GameState {
-    MAIN_MENU, OPTIONS, SETUP, SPINNING, PLAYERS_REVEAL, CHOOSE, QUESTION_TYPE, RESULT
+    MAIN_MENU, OPTIONS, SETUP, SPINNING, PLAYERS_REVEAL, CHOOSE, QUESTION_TYPE, RESULT, SCOREBOARD, PHOTO_CAPTURE
+}
+
+data class PlayerScore(
+    val name: String,
+    var points: Int = 0,
+    var challengesCompleted: Int = 0,
+    var truthsCompleted: Int = 0,
+    var refusals: Int = 0
+)
+
+data class PhotoRecord(
+    val id: String,
+    val players: List<String>,
+    val timestamp: Long,
+    val challengeType: String,
+    val photoUri: String,
+    val thumbnailUri: String? = null,
+    val description: String = "",
+    val consentGiven: Boolean = true
+)
+
+data class GameSettings(
+    var soundEnabled: Boolean = true,
+    var musicEnabled: Boolean = true,
+    var soundVolume: Float = 0.7f,
+    var musicVolume: Float = 0.5f,
+    var allowSavePhotos: Boolean = true,
+    var hapticEnabled: Boolean = true
+)
+
+// Pontuação sugerida
+object ScoreRules {
+    const val COMPLETE_DARE = 5
+    const val COMPLETE_TRUTH = 3
+    const val REFUSE_CHALLENGE = -3
+    const val WIN_ROUND = 4
 }
 
 val truthQuestions = listOf(

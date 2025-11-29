@@ -12,13 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.cafeteria.verdadeoudesafio.managers.AudioManager
 import com.cafeteria.verdadeoudesafio.ui.theme.*
 import kotlin.random.Random
 
@@ -29,6 +32,9 @@ fun SpinningScreen(
     onSpinComplete: (String, String) -> Unit,
     onBackToMenu: () -> Unit
 ) {
+    val context = LocalContext.current
+    val audioManager = remember { AudioManager.getInstance(context) }
+
     var rotation by remember { mutableStateOf(0f) }
     var isSpinning by remember { mutableStateOf(false) }
 
@@ -74,7 +80,9 @@ fun SpinningScreen(
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
                 color = NeonRed,
-                modifier = Modifier.padding(bottom = 40.dp)
+                modifier = Modifier
+                    .padding(bottom = 40.dp)
+                    .shadow(elevation = 30.dp, spotColor = NeonRed)
             )
 
             Box(
@@ -84,6 +92,7 @@ fun SpinningScreen(
                     .clickable(enabled = !isSpinning) {
                         if (!isSpinning) {
                             isSpinning = true
+                            audioManager.playSound(AudioManager.SoundEffect.SPIN_START)
                             rotation += Random
                                 .nextInt(1080, 2160)
                                 .toFloat()
@@ -122,7 +131,12 @@ fun SpinningScreen(
                 text = if (!isSpinning) "TOQUE PARA GIRAR" else "GIRANDO...",
                 fontSize = 20.sp,
                 color = if (!isSpinning) Color.White.copy(alpha = 0.7f) else NeonRed,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = if (isSpinning) {
+                    Modifier.shadow(elevation = 20.dp, spotColor = NeonRed)
+                } else {
+                    Modifier
+                }
             )
         }
     }

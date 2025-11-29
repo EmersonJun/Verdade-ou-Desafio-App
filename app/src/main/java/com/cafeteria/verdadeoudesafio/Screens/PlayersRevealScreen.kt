@@ -1,4 +1,4 @@
-package com.cafeteria.verdadeoudesafio.screensscreens
+package com.cafeteria.verdadeoudesafio.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -35,7 +35,8 @@ fun PlayersRevealScreen(
         onContinue()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Retângulo AZUL - METADE SUPERIOR - Entra da ESQUERDA
         AnimatedVisibility(
             visible = showBlue,
             enter = slideInHorizontally(
@@ -43,8 +44,9 @@ fun PlayersRevealScreen(
                 animationSpec = tween(800, easing = FastOutSlowInEasing)
             ) + fadeIn(animationSpec = tween(800)),
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
+                .fillMaxHeight(0.5f)
+                .align(Alignment.TopCenter)
         ) {
             Box(
                 modifier = Modifier
@@ -76,6 +78,7 @@ fun PlayersRevealScreen(
             }
         }
 
+        // Retângulo VERMELHO - METADE INFERIOR - Entra da DIREITA
         AnimatedVisibility(
             visible = showRed,
             enter = slideInHorizontally(
@@ -83,8 +86,9 @@ fun PlayersRevealScreen(
                 animationSpec = tween(800, easing = FastOutSlowInEasing)
             ) + fadeIn(animationSpec = tween(800)),
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
+                .fillMaxHeight(0.5f)
+                .align(Alignment.BottomCenter)
         ) {
             Box(
                 modifier = Modifier
