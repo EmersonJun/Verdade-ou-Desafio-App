@@ -19,8 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cafeteria.verdadeoudesafio.database.CustomDareEntity
 import com.cafeteria.verdadeoudesafio.database.CustomTruthEntity
+import com.cafeteria.verdadeoudesafio.database.VideoEntity
 import com.cafeteria.verdadeoudesafio.models.GameSettings
 import com.cafeteria.verdadeoudesafio.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,12 +31,14 @@ fun OptionsScreen(
     onBottleImageChanged: (Uri?) -> Unit,
     customTruths: List<CustomTruthEntity>,
     customDares: List<CustomDareEntity>,
+    videos: List<VideoEntity>,
     onAddTruth: (String) -> Unit,
     onUpdateTruth: (CustomTruthEntity) -> Unit,
     onDeleteTruth: (CustomTruthEntity) -> Unit,
     onAddDare: (String) -> Unit,
     onUpdateDare: (CustomDareEntity) -> Unit,
     onDeleteDare: (CustomDareEntity) -> Unit,
+    onDeleteVideo: (VideoEntity) -> Unit,
     gameSettings: GameSettings = GameSettings(),
     onSettingsChanged: (GameSettings) -> Unit = {},
     onBack: () -> Unit
@@ -43,6 +47,7 @@ fun OptionsScreen(
     var newTruth by remember { mutableStateOf("") }
     var newDare by remember { mutableStateOf("") }
     var settings by remember { mutableStateOf(gameSettings) }
+    val coroutineScope = rememberCoroutineScope()
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -53,14 +58,11 @@ fun OptionsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
-            // Substitua apenas a seção do Header no seu OptionsScreen.kt atual:
-
-// Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .padding(top = 24.dp),  // Padding adicional para afastar do topo
+                    .padding(top = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
@@ -128,6 +130,17 @@ fun OptionsScreen(
                         )
                     }
                 )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.VideoLibrary, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("VÍDEOS", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                )
             }
 
             // Content
@@ -141,7 +154,7 @@ fun OptionsScreen(
                         onSettingsChanged(newSettings)
                     }
                 )
-                1 -> QuestionsListTabWithEdit(
+                1 -> TruthsTab(
                     questions = customTruths,
                     newQuestion = newTruth,
                     onNewQuestionChanged = { newTruth = it },
@@ -151,11 +164,10 @@ fun OptionsScreen(
                             newTruth = ""
                         }
                     },
-                    onUpdate = { entity -> onUpdateTruth(entity) },
-                    onDelete = { entity -> onDeleteTruth(entity) },
-                    color = NeonBlue
+                    onUpdate = onUpdateTruth,
+                    onDelete = onDeleteTruth
                 )
-                2 -> QuestionsListTabWithEdit(
+                2 -> DaresTab(
                     questions = customDares,
                     newQuestion = newDare,
                     onNewQuestionChanged = { newDare = it },
@@ -165,9 +177,17 @@ fun OptionsScreen(
                             newDare = ""
                         }
                     },
-                    onUpdate = { entity -> onUpdateDare(entity) },
-                    onDelete = { entity -> onDeleteDare(entity) },
-                    color = NeonRed
+                    onUpdate = onUpdateDare,
+                    onDelete = onDeleteDare
+                )
+                3 -> VideosListScreen(
+                    videos = videos,
+                    onBack = { selectedTab = 0 },
+                    onDeleteVideo = { video ->
+                        coroutineScope.launch {
+                            onDeleteVideo(video)
+                        }
+                    }
                 )
             }
         }
@@ -175,16 +195,15 @@ fun OptionsScreen(
 }
 
 @Composable
-fun <T> QuestionsListTabWithEdit(
-    questions: List<T>,
+fun TruthsTab(
+    questions: List<CustomTruthEntity>,
     newQuestion: String,
     onNewQuestionChanged: (String) -> Unit,
     onAdd: () -> Unit,
-    onUpdate: (T) -> Unit,
-    onDelete: (T) -> Unit,
-    color: Color
-) where T : Any {
-    var editingQuestion by remember { mutableStateOf<T?>(null) }
+    onUpdate: (CustomTruthEntity) -> Unit,
+    onDelete: (CustomTruthEntity) -> Unit
+) {
+    var editingQuestion by remember { mutableStateOf<CustomTruthEntity?>(null) }
     var editText by remember { mutableStateOf("") }
 
     Column(
@@ -202,7 +221,7 @@ fun <T> QuestionsListTabWithEdit(
                     text = "ADICIONAR NOVA",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = color,
+                    color = NeonBlue,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
@@ -216,7 +235,7 @@ fun <T> QuestionsListTabWithEdit(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = color,
+                        focusedBorderColor = NeonBlue,
                         unfocusedBorderColor = Color.Gray
                     ),
                     maxLines = 3
@@ -229,7 +248,7 @@ fun <T> QuestionsListTabWithEdit(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = color),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonBlue),
                     shape = RoundedCornerShape(12.dp),
                     enabled = newQuestion.isNotBlank()
                 ) {
@@ -246,7 +265,7 @@ fun <T> QuestionsListTabWithEdit(
             text = "LISTA (${questions.size})",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = color,
+            color = NeonBlue,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -254,18 +273,8 @@ fun <T> QuestionsListTabWithEdit(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            itemsIndexed(questions) { index, question ->
-                val questionText = when (question) {
-                    is CustomTruthEntity -> question.question
-                    is CustomDareEntity -> question.question
-                    else -> ""
-                }
-
-                val isDefault = when (question) {
-                    is CustomTruthEntity -> question.createdAt == 0L
-                    is CustomDareEntity -> question.createdAt == 0L
-                    else -> false
-                }
+            itemsIndexed(questions) { _, question ->
+                val isDefault = question.createdAt == 0L
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -278,7 +287,6 @@ fun <T> QuestionsListTabWithEdit(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     if (editingQuestion == question) {
-                        // Modo de edição
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -291,7 +299,7 @@ fun <T> QuestionsListTabWithEdit(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
-                                    focusedBorderColor = color,
+                                    focusedBorderColor = NeonBlue,
                                     unfocusedBorderColor = Color.Gray
                                 ),
                                 maxLines = 3
@@ -317,18 +325,12 @@ fun <T> QuestionsListTabWithEdit(
                                 Button(
                                     onClick = {
                                         if (editText.isNotBlank()) {
-                                            val updated = when (question) {
-                                                is CustomTruthEntity -> question.copy(question = editText)
-                                                is CustomDareEntity -> question.copy(question = editText)
-                                                else -> question
-                                            }
-                                            @Suppress("UNCHECKED_CAST")
-                                            onUpdate(updated as T)
+                                            onUpdate(question.copy(question = editText))
                                             editingQuestion = null
                                             editText = ""
                                         }
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = color),
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonBlue),
                                     enabled = editText.isNotBlank()
                                 ) {
                                     Text("SALVAR")
@@ -336,7 +338,6 @@ fun <T> QuestionsListTabWithEdit(
                             }
                         }
                     } else {
-                        // Modo de visualização
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -346,7 +347,7 @@ fun <T> QuestionsListTabWithEdit(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = questionText,
+                                    text = question.question,
                                     color = Color.White,
                                     fontSize = 14.sp
                                 )
@@ -364,13 +365,13 @@ fun <T> QuestionsListTabWithEdit(
                                 IconButton(
                                     onClick = {
                                         editingQuestion = question
-                                        editText = questionText
+                                        editText = question.question
                                     }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = "Editar",
-                                        tint = color
+                                        tint = NeonBlue
                                     )
                                 }
 
@@ -390,7 +391,203 @@ fun <T> QuestionsListTabWithEdit(
     }
 }
 
-// GeneralSettingsTab e SettingRow permanecem iguais...
+@Composable
+fun DaresTab(
+    questions: List<CustomDareEntity>,
+    newQuestion: String,
+    onNewQuestionChanged: (String) -> Unit,
+    onAdd: () -> Unit,
+    onUpdate: (CustomDareEntity) -> Unit,
+    onDelete: (CustomDareEntity) -> Unit
+) {
+    var editingQuestion by remember { mutableStateOf<CustomDareEntity?>(null) }
+    var editText by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = DarkCard),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "ADICIONAR NOVO",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonRed,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = newQuestion,
+                    onValueChange = onNewQuestionChanged,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    placeholder = { Text("Digite aqui...", color = Color.Gray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = NeonRed,
+                        unfocusedBorderColor = Color.Gray
+                    ),
+                    maxLines = 3
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonRed),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = newQuestion.isNotBlank()
+                ) {
+                    Icon(Icons.Default.Add, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("ADICIONAR", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "LISTA (${questions.size})",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = NeonRed,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            itemsIndexed(questions) { _, question ->
+                val isDefault = question.createdAt == 0L
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDefault)
+                            DarkCard.copy(alpha = 0.7f)
+                        else
+                            DarkCard
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (editingQuestion == question) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = editText,
+                                onValueChange = { editText = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = NeonRed,
+                                    unfocusedBorderColor = Color.Gray
+                                ),
+                                maxLines = 3
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        editingQuestion = null
+                                        editText = ""
+                                    }
+                                ) {
+                                    Text("CANCELAR", color = Color.Gray)
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (editText.isNotBlank()) {
+                                            onUpdate(question.copy(question = editText))
+                                            editingQuestion = null
+                                            editText = ""
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonRed),
+                                    enabled = editText.isNotBlank()
+                                ) {
+                                    Text("SALVAR")
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = question.question,
+                                    color = Color.White,
+                                    fontSize = 14.sp
+                                )
+                                if (isDefault) {
+                                    Text(
+                                        text = "Padrão",
+                                        color = Color.Gray,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Row {
+                                IconButton(
+                                    onClick = {
+                                        editingQuestion = question
+                                        editText = question.question
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Editar",
+                                        tint = NeonRed
+                                    )
+                                }
+
+                                IconButton(onClick = { onDelete(question) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Deletar",
+                                        tint = NeonRed
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun GeneralSettingsTab(
     bottleImageUri: Uri?,
@@ -560,8 +757,8 @@ fun GeneralSettingsTab(
                     Spacer(Modifier.height(20.dp))
 
                     SettingRow(
-                        icon = Icons.Default.Camera,
-                        title = "Permitir Fotos",
+                        icon = Icons.Default.Videocam,
+                        title = "Permitir Vídeos",
                         checked = settings.allowSavePhotos,
                         onCheckedChange = {
                             onSettingsChange(settings.copy(allowSavePhotos = it))

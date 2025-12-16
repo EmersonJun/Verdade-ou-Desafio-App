@@ -1,7 +1,18 @@
 package com.cafeteria.verdadeoudesafio.models
 
 enum class GameState {
-    MAIN_MENU, OPTIONS, SETUP, SPINNING, PLAYERS_REVEAL, CHOOSE, QUESTION_TYPE, RESULT, SCOREBOARD, PHOTO_CAPTURE
+    MAIN_MENU,
+    OPTIONS,
+    SETUP,
+    SPINNING,
+    PLAYERS_REVEAL,
+    CHOOSE,
+    QUESTION_TYPE,
+    RESULT,
+    SCOREBOARD,
+    VIDEO_CAPTURE,  // MUDOU DE PHOTO_CAPTURE
+    CARD_REVEAL,
+    PLAYER_CARDS
 }
 
 data class PlayerScore(
@@ -9,7 +20,9 @@ data class PlayerScore(
     var points: Int = 0,
     var challengesCompleted: Int = 0,
     var truthsCompleted: Int = 0,
-    var refusals: Int = 0
+    var refusals: Int = 0,
+    val cards: MutableList<PowerCard> = mutableListOf(),  // NOVO
+    var consecutiveChallenges: Int = 0                     // NOVO
 )
 
 data class PhotoRecord(
@@ -40,6 +53,37 @@ object ScoreRules {
     const val WIN_ROUND = 4
 }
 
+object CardManager {
+    // Chance base aumenta conforme mais desafios são completados
+    fun shouldReceiveCard(challengesCompleted: Int): Boolean {
+        val baseChance = 15 // 15% base
+        val bonusChance = minOf(challengesCompleted * 5, 45) // +5% por desafio, máx 45%
+        val totalChance = baseChance + bonusChance // Máximo 60%
+
+        return (0..100).random() <= totalChance
+    }
+
+    fun calculatePoints(basePoints: Int, activeCard: PowerCard?): Int {
+        return if (activeCard != null &&
+            (activeCard.effect == PowerCardEffect.DOUBLE_POINTS ||
+                    activeCard.effect == PowerCardEffect.TRIPLE_POINTS)) {
+            (basePoints * activeCard.pointsModifier).toInt()
+        } else {
+            basePoints
+        }
+    }
+
+    fun canSkipWithCard(activeCard: PowerCard?, currentType: String): Boolean {
+        if (activeCard?.effect != PowerCardEffect.SKIP) return false
+
+        return when (activeCard.type) {
+            CardType.TRUTH -> currentType == "Verdade"
+            CardType.DARE -> currentType == "Desafio"
+            CardType.UNIVERSAL -> true
+        }
+    }
+}
+
 val truthQuestions = listOf(
     "Qual foi a maior vergonha que você já passou em público?",
     "Qual foi a coisa mais idiota que você já fez por amor?",
@@ -65,3 +109,4 @@ val dareQuestions = listOf(
     "Diga o nome de três frutas o mais rápido que conseguir (sem repetir).",
     "Faça uma pose de super-herói e mantenha por 10 segundos."
 )
+

@@ -7,8 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,20 +22,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.cafeteria.verdadeoudesafio.managers.AudioManager
-import com.cafeteria.verdadeoudesafio.models.ScoreRules
+import com.cafeteria.verdadeoudesafio.managers.PowerCardManager
+import com.cafeteria.verdadeoudesafio.models.*
 import com.cafeteria.verdadeoudesafio.ui.theme.*
 import kotlinx.coroutines.delay
 
 @Composable
 fun ResultScreen(
     challenged: String,
+    challenger: String,
     option: String,
     question: String,
-    onComplete: (Boolean) -> Unit,
-    onTakePhoto: () -> Unit,
-    onNext: () -> Unit,
+    players: List<String>,
+    onComplete: (Boolean, Int) -> Unit,
+    onRecordVideo: () -> Unit,
+    onNext: (String?, Boolean) -> Unit,
     onBackToMenu: () -> Unit,
-    allowPhotos: Boolean = true
+    allowPhotos: Boolean = true,
+    playerCards: List<PowerCard> = emptyList(),
+    activeCard: PowerCard? = null,
+    onViewCards: () -> Unit = {},
+    onStealPoints: (String, String, Int) -> Unit = { _, _, _ -> },
+    onChooseNextPlayer: (List<String>) -> Unit = {}
 ) {
     val context = LocalContext.current
     val audioManager = remember { AudioManager.getInstance(context) }
@@ -45,6 +52,47 @@ fun ResultScreen(
     var showActions by remember { mutableStateOf(false) }
     var pointsToAdd by remember { mutableStateOf<Int?>(null) }
     var showPointsAnimation by remember { mutableStateOf(false) }
+    var showPlayerSelection by remember { mutableStateOf(false) }
+    var cardEffect by remember { mutableStateOf<PowerCardManager.CardEffect?>(null) }
+    var actualChallenger by remember { mutableStateOf(challenger) }
+    var actualChallenged by remember { mutableStateOf(challenged) }
+    var showSkipButton by remember { mutableStateOf(false) }
+
+    // Calcular efeitos da carta
+    LaunchedEffect(activeCard) {
+        if (activeCard != null) {
+            cardEffect = PowerCardManager.applyCardEffect(
+                card = activeCard,
+                challenged = challenged,
+                challenger = challenger,
+                players = players,
+                currentType = option
+            )
+
+            cardEffect?.let { effect ->
+                if (effect.reverseRoles) {
+                    actualChallenger = challenged
+                    actualChallenged = challenger
+                }
+
+                if (effect.stealFromChallenger && effect.stealPoints > 0) {
+                    audioManager.playSound(AudioManager.SoundEffect.SUCCESS)
+                    onStealPoints(challenger, challenged, effect.stealPoints)
+                    delay(1500)
+                    onNext(null, false)
+                    return@LaunchedEffect
+                }
+
+                if (effect.choosePlayer) {
+                    showPlayerSelection = true
+                }
+
+                if (effect.skipChallenge) {
+                    showSkipButton = true
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         delay(500)
@@ -54,36 +102,23 @@ fun ResultScreen(
     LaunchedEffect(pointsToAdd) {
         if (pointsToAdd != null) {
             showPointsAnimation = true
-
-            // Tocar som baseado nos pontos
             if ((pointsToAdd ?: 0) > 0) {
                 audioManager.playSound(AudioManager.SoundEffect.SUCCESS)
-            } else {
+            } else if ((pointsToAdd ?: 0) < 0) {
                 audioManager.playSound(AudioManager.SoundEffect.FAIL)
             }
-
             delay(2000)
-            onNext()
+
+            if (cardEffect?.extraTurn == true) {
+                onNext(actualChallenged, false)
+            } else {
+                onNext(null, cardEffect?.reverseRoles ?: false)
+            }
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Efeito de luz neon de fundo
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.2f),
-                            DarkBackground
-                        ),
-                        center = androidx.compose.ui.geometry.Offset(0.5f, 0.3f),
-                        radius = 800f
-                    )
-                )
-        )
-
+        // Botão voltar
         IconButton(
             onClick = {
                 audioManager.playSound(AudioManager.SoundEffect.CLICK)
@@ -102,7 +137,102 @@ fun ResultScreen(
             )
         }
 
-        // Animação de pontos - CENTRALIZADA E POR CIMA DE TUDO
+        // BOTÃO DE CARTAS - MAIOR E MAIS VISÍVEL
+        if (playerCards.isNotEmpty() && activeCard == null) {
+            Button(
+                onClick = {
+                    audioManager.playSound(AudioManager.SoundEffect.CLICK)
+                    onViewCards()
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .zIndex(5f)
+                    .width(180.dp)
+                    .height(70.dp)
+                    .shadow(
+                        elevation = 20.dp,
+                        spotColor = Color(0xFFFFD700),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFD700).copy(alpha = 0.9f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "🎴", fontSize = 32.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = "USAR CARTA",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "${playerCards.size} disponível${if (playerCards.size > 1) "is" else ""}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Indicador de carta ativa
+        if (activeCard != null) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp)
+                    .zIndex(3f)
+                    .shadow(
+                        elevation = 20.dp,
+                        spotColor = activeCard.getColor(),
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                colors = CardDefaults.cardColors(containerColor = DarkCard),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    activeCard.getColor().copy(alpha = 0.3f),
+                                    DarkCard
+                                )
+                            )
+                        )
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "⚡", fontSize = 24.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "CARTA ATIVA",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = activeCard.name,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = activeCard.getColor()
+                        )
+                    }
+                }
+            }
+        }
+
+        // Animação de pontos
         AnimatedVisibility(
             visible = showPointsAnimation,
             enter = slideInVertically(
@@ -117,49 +247,76 @@ fun ResultScreen(
                 .align(Alignment.Center)
                 .zIndex(10f)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(180.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                if ((pointsToAdd ?: 0) > 0) Color.Green.copy(alpha = 0.3f) else NeonRed.copy(alpha = 0.3f),
-                                Color.Transparent
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(220.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    if ((pointsToAdd ?: 0) > 0) Color.Green.copy(alpha = 0.5f)
+                                    else if ((pointsToAdd ?: 0) < 0) NeonRed.copy(alpha = 0.5f)
+                                    else Color.Gray.copy(alpha = 0.5f),
+                                    Color.Transparent
+                                )
                             )
                         )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
+                )
                 Text(
-                    text = "${if ((pointsToAdd ?: 0) > 0) "+" else ""}${pointsToAdd ?: 0}",
+                    text = when {
+                        (pointsToAdd ?: 0) > 0 -> "+${pointsToAdd}"
+                        (pointsToAdd ?: 0) < 0 -> "$pointsToAdd"
+                        else -> "0"
+                    },
                     fontSize = 80.sp,
                     fontWeight = FontWeight.Black,
-                    color = if ((pointsToAdd ?: 0) > 0) Color.Green else NeonRed,
-                    modifier = Modifier.shadow(
-                        elevation = 40.dp,
-                        spotColor = if ((pointsToAdd ?: 0) > 0) Color.Green else NeonRed
-                    )
+                    color = when {
+                        (pointsToAdd ?: 0) > 0 -> Color.Green
+                        (pointsToAdd ?: 0) < 0 -> NeonRed
+                        else -> Color.Gray
+                    },
+                    modifier = Modifier.shadow(elevation = 40.dp)
                 )
             }
         }
 
+        // Conteúdo principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .padding(top = if (activeCard != null) 60.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = option.uppercase(),
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Black,
-                color = accentColor,
-                modifier = Modifier.shadow(elevation = 30.dp, spotColor = accentColor)
-            )
+            // Título
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(bottom = 40.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(250.dp, 80.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = 0.4f),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = RoundedCornerShape(40.dp)
+                        )
+                )
+                Text(
+                    text = option.uppercase(),
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Black,
+                    color = accentColor,
+                    modifier = Modifier.shadow(elevation = 30.dp, spotColor = accentColor)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(40.dp))
-
+            // Card com pergunta
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkCard),
@@ -176,13 +333,38 @@ fun ResultScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = challenged.uppercase(),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        color = NeonRed,
-                        modifier = Modifier.shadow(elevation = 20.dp, spotColor = NeonRed)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(180.dp, 50.dp)
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            NeonRed.copy(alpha = 0.4f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(25.dp)
+                                )
+                        )
+                        Text(
+                            text = actualChallenged.uppercase(),
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = NeonRed,
+                            modifier = Modifier.shadow(elevation = 20.dp, spotColor = NeonRed)
+                        )
+                    }
+
+                    if (cardEffect?.reverseRoles == true) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "🔄 PAPÉIS INVERTIDOS!",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFAA00FF)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -199,6 +381,7 @@ fun ResultScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Botões de ação
             AnimatedVisibility(
                 visible = showActions,
                 enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn()
@@ -207,28 +390,66 @@ fun ResultScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // BOTÃO DE PULAR (Carta de Skip)
+                    if (showSkipButton) {
+                        Button(
+                            onClick = {
+                                audioManager.playSound(AudioManager.SoundEffect.CLICK)
+                                pointsToAdd = 0
+                                onComplete(true, 0)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(70.dp)
+                                .shadow(
+                                    elevation = 20.dp,
+                                    spotColor = Color(0xFFAA00FF),
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFAA00FF)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "⚡ PULAR SEM PENALIDADE",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
                     // Botão Completou
+                    val basePoints = if (option == "Verdade") ScoreRules.COMPLETE_TRUTH else ScoreRules.COMPLETE_DARE
+                    val finalPoints = (basePoints * (cardEffect?.pointsMultiplier ?: 1f)).toInt()
+
                     Button(
                         onClick = {
-                            val points = if (option == "Verdade") {
-                                ScoreRules.COMPLETE_TRUTH
-                            } else {
-                                ScoreRules.COMPLETE_DARE
-                            }
-                            pointsToAdd = points
-                            onComplete(true)
+                            pointsToAdd = finalPoints
+                            onComplete(true, finalPoints)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(70.dp)
-                            .shadow(elevation = 20.dp, spotColor = Color.Green, shape = RoundedCornerShape(16.dp)),
+                            .shadow(
+                                elevation = 20.dp,
+                                spotColor = Color.Green,
+                                shape = RoundedCornerShape(16.dp)
+                            ),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Green.copy(alpha = 0.8f)
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
-                            text = "✓ COMPLETOU (+${if (option == "Verdade") ScoreRules.COMPLETE_TRUTH else ScoreRules.COMPLETE_DARE} pts)",
+                            text = "✓ COMPLETOU (+$finalPoints pts)${if (activeCard != null) " ⚡" else ""}",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -236,12 +457,12 @@ fun ResultScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Botão Tirar Foto (se permitido)
+                    // Botão Vídeo
                     if (allowPhotos && option == "Desafio") {
                         OutlinedButton(
                             onClick = {
                                 audioManager.playSound(AudioManager.SoundEffect.CLICK)
-                                onTakePhoto()
+                                onRecordVideo()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -251,31 +472,34 @@ fun ResultScreen(
                             ),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 width = 2.dp,
-                                brush = Brush.linearGradient(listOf(NeonBlue, NeonBlue.copy(alpha = 0.5f)))
+                                brush = Brush.linearGradient(
+                                    listOf(NeonBlue, NeonBlue.copy(alpha = 0.5f))
+                                )
                             ),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Camera,
+                                imageVector = Icons.Default.Videocam,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "TIRAR FOTO",
+                                text = "GRAVAR VÍDEO",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
                     // Botão Recusou
+                    val refusalPoints = if (cardEffect?.hasShield == true) 0 else ScoreRules.REFUSE_CHALLENGE
+
                     OutlinedButton(
                         onClick = {
-                            pointsToAdd = ScoreRules.REFUSE_CHALLENGE
-                            onComplete(false)
+                            pointsToAdd = refusalPoints
+                            onComplete(false, refusalPoints)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -285,12 +509,17 @@ fun ResultScreen(
                         ),
                         border = ButtonDefaults.outlinedButtonBorder.copy(
                             width = 2.dp,
-                            brush = Brush.linearGradient(listOf(NeonRed, NeonRed.copy(alpha = 0.5f)))
+                            brush = Brush.linearGradient(
+                                listOf(NeonRed, NeonRed.copy(alpha = 0.5f))
+                            )
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
-                            text = "✗ RECUSOU (${ScoreRules.REFUSE_CHALLENGE} pts)",
+                            text = if (cardEffect?.hasShield == true)
+                                "🛡️ RECUSAR (SEM PENALIDADE)"
+                            else
+                                "✗ RECUSOU ($refusalPoints pts)",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -298,5 +527,61 @@ fun ResultScreen(
                 }
             }
         }
+
+        // Dialog de seleção de jogador
+        if (showPlayerSelection) {
+            PlayerSelectionDialog(
+                players = players.filter { it != actualChallenged },
+                onPlayerSelected = { selectedPlayer ->
+                    showPlayerSelection = false
+                    onChooseNextPlayer(listOf(actualChallenged, selectedPlayer))
+                },
+                onDismiss = { showPlayerSelection = false }
+            )
+        }
     }
+}
+
+@Composable
+fun PlayerSelectionDialog(
+    players: List<String>,
+    onPlayerSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "ESCOLHA O PRÓXIMO DESAFIADO",
+                fontWeight = FontWeight.Black,
+                color = NeonRed,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                players.forEach { player ->
+                    Button(
+                        onClick = { onPlayerSelected(player) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeonBlue
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = player.uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        containerColor = DarkCard
+    )
 }

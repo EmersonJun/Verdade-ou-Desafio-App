@@ -2,6 +2,7 @@ package com.cafeteria.verdadeoudesafio
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -10,11 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cafeteria.verdadeoudesafio.database.AppDatabase
-import com.cafeteria.verdadeoudesafio.database.CustomDareEntity
-import com.cafeteria.verdadeoudesafio.database.CustomTruthEntity
 import com.cafeteria.verdadeoudesafio.managers.AudioManager
 import com.cafeteria.verdadeoudesafio.models.*
 import com.cafeteria.verdadeoudesafio.repository.GameRepository
@@ -23,7 +25,11 @@ import com.cafeteria.verdadeoudesafio.ui.theme.DarkBackground
 import com.cafeteria.verdadeoudesafio.ui.theme.DarkCard
 import com.cafeteria.verdadeoudesafio.ui.theme.NeonRed
 import com.cafeteria.verdadeoudesafio.ui.theme.VerdadeOuDesafioTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
 
@@ -34,17 +40,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        audioManager = AudioManager.getInstance(this)
-        database = AppDatabase.getDatabase(this)
-        repository = GameRepository(database)
+        try {
+            Log.d(TAG, "=== INICIANDO APLICATIVO ===")
 
-        setContent {
-            VerdadeOuDesafioTheme {
-                TruthOrDareGame(
-                    audioManager = audioManager,
-                    repository = repository
-                )
+            audioManager = AudioManager.getInstance(this)
+            database = AppDatabase.getDatabase(this)
+            repository = GameRepository(database)
+
+            setContent {
+                VerdadeOuDesafioTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = DarkBackground
+                    ) {
+                        GameScreen(
+                            audioManager = audioManager,
+                            repository = repository
+                        )
+                    }
+                }
             }
+
+            Log.d(TAG, "=== APLICATIVO INICIADO ===")
+        } catch (e: Exception) {
+            Log.e(TAG, "ERRO NO ONCREATE", e)
+            e.printStackTrace()
         }
     }
 
@@ -65,42 +85,162 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun GameScreen(
+    audioManager: AudioManager,
+    repository: GameRepository
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Inicialização
+    LaunchedEffect(Unit) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Inicializando...")
+
+                // Inicializar perguntas apenas se necessário
+                if (!repository.hasTruthsInitialized()) {
+                    Log.d(TAG, "Inicializando perguntas padrão...")
+                    repository.initializeDefaultQuestions()
+                }
+
+                Log.d(TAG, "Inicialização completa")
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na inicialização", e)
+                withContext(Dispatchers.Main) {
+                    loadError = e.message ?: "Erro desconhecido"
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    when {
+        isLoading -> LoadingScreen()
+        loadError != null -> ErrorScreen(error = loadError!!)
+        else -> TruthOrDareGame(audioManager, repository)
+    }
+}
+
+@Composable
+fun LoadingScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(
+                color = NeonRed,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "CARREGANDO...",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                color = NeonRed
+            )
+        }
+    }
+}
+
+@Composable
+fun ErrorScreen(error: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground)
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "❌",
+                fontSize = 64.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "ERRO AO INICIAR",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                color = NeonRed
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = error,
+                fontSize = 14.sp,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
 fun TruthOrDareGame(
     audioManager: AudioManager,
     repository: GameRepository
 ) {
     var gameState by rememberSaveable { mutableStateOf(GameState.MAIN_MENU) }
     var players by rememberSaveable { mutableStateOf(listOf<String>()) }
-    val playerScores by repository.allScores.collectAsState(initial = emptyList())
+
+    val allScores by repository.allScores.collectAsState(initial = emptyList())
+    val playerScores = remember(allScores, players) {
+        allScores.filter { it.name in players }
+    }
+
     var challenger by rememberSaveable { mutableStateOf("") }
     var challenged by rememberSaveable { mutableStateOf("") }
     var selectedOption by rememberSaveable { mutableStateOf<String?>(null) }
     var currentQuestion by rememberSaveable { mutableStateOf("") }
+
     var bottleImageUri by remember { mutableStateOf<Uri?>(null) }
     val customTruths by repository.allTruths.collectAsState(initial = emptyList())
     val customDares by repository.allDares.collectAsState(initial = emptyList())
+    val allVideos by repository.allVideos.collectAsState(initial = emptyList())
+
     var gameSettings by remember { mutableStateOf(GameSettings()) }
     var showResetDialog by remember { mutableStateOf(false) }
 
-    val coroutineScope = rememberCoroutineScope()
+    var receivedCard by remember { mutableStateOf<PowerCard?>(null) }
+    var showingCardsFor by remember { mutableStateOf<String?>(null) }
+    var activeCardForPlayer by remember { mutableStateOf<PowerCard?>(null) }
+    var nextPlayerOverride by remember { mutableStateOf<String?>(null) }
 
-    // Carregar configurações ao iniciar
+    val scope = rememberCoroutineScope()
+
+    // Carregar configurações
     LaunchedEffect(Unit) {
-        gameSettings = repository.getSettingsOnce()
-        repository.getBottleImageUri()?.let { uriString ->
-            bottleImageUri = Uri.parse(uriString)
+        scope.launch(Dispatchers.IO) {
+            try {
+                gameSettings = repository.getSettingsOnce()
+                repository.getBottleImageUri()?.let { uriString ->
+                    withContext(Dispatchers.Main) {
+                        bottleImageUri = Uri.parse(uriString)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao carregar configurações", e)
+            }
         }
-        // Inicializar perguntas padrão se necessário
-        repository.initializeDefaultQuestions()
     }
 
-    // Sincronizar settings com AudioManager
+    // Atualizar audio
     LaunchedEffect(gameSettings) {
         audioManager.soundEnabled = gameSettings.soundEnabled
         audioManager.musicEnabled = gameSettings.musicEnabled
         audioManager.updateSoundVolume(gameSettings.soundVolume)
         audioManager.updateMusicVolume(gameSettings.musicVolume)
-        repository.saveSettings(gameSettings)
     }
 
     Box(
@@ -110,7 +250,19 @@ fun TruthOrDareGame(
     ) {
         when (gameState) {
             GameState.MAIN_MENU -> MainMenuScreen(
-                onPlay = { gameState = GameState.SETUP },
+                onPlay = {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            repository.resetAllScores()
+                            withContext(Dispatchers.Main) {
+                                players = emptyList()
+                                gameState = GameState.SETUP
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Erro ao iniciar jogo", e)
+                        }
+                    }
+                },
                 onOptions = { gameState = GameState.OPTIONS },
                 onReset = { showResetDialog = true }
             )
@@ -119,46 +271,52 @@ fun TruthOrDareGame(
                 bottleImageUri = bottleImageUri,
                 onBottleImageChanged = { uri ->
                     bottleImageUri = uri
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.saveBottleImageUri(uri?.toString())
                     }
                 },
                 customTruths = customTruths,
                 customDares = customDares,
+                videos = allVideos,
                 onAddTruth = { truth ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.addTruth(truth)
                     }
                 },
                 onUpdateTruth = { entity ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.updateTruth(entity)
                     }
                 },
                 onDeleteTruth = { entity ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.deleteTruth(entity)
                     }
                 },
                 onAddDare = { dare ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.addDare(dare)
                     }
                 },
                 onUpdateDare = { entity ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.updateDare(entity)
                     }
                 },
                 onDeleteDare = { entity ->
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.deleteDare(entity)
+                    }
+                },
+                onDeleteVideo = { video ->
+                    scope.launch(Dispatchers.IO) {
+                        repository.deleteVideo(video)
                     }
                 },
                 gameSettings = gameSettings,
                 onSettingsChanged = { newSettings ->
                     gameSettings = newSettings
-                    coroutineScope.launch {
+                    scope.launch(Dispatchers.IO) {
                         repository.saveSettings(newSettings)
                     }
                 },
@@ -167,13 +325,30 @@ fun TruthOrDareGame(
 
             GameState.SETUP -> SetupScreen(
                 players = players,
-                onPlayersChanged = { players = it },
+                onPlayersChanged = { newPlayers ->
+                    players = newPlayers
+                    scope.launch(Dispatchers.IO) {
+                        newPlayers.forEach { playerName ->
+                            if (allScores.none { it.name == playerName }) {
+                                repository.saveScore(PlayerScore(name = playerName))
+                            }
+                        }
+                    }
+                },
                 onStart = {
                     if (players.size >= 2) {
                         gameState = GameState.SPINNING
                     }
                 },
-                onBack = { gameState = GameState.MAIN_MENU }
+                onBack = {
+                    scope.launch(Dispatchers.IO) {
+                        repository.resetAllScores()
+                        withContext(Dispatchers.Main) {
+                            players = emptyList()
+                            gameState = GameState.MAIN_MENU
+                        }
+                    }
+                }
             )
 
             GameState.SPINNING -> SpinningScreen(
@@ -210,103 +385,214 @@ fun TruthOrDareGame(
                 },
                 onList = {
                     currentQuestion = if (selectedOption == "Verdade") {
-                        if (customTruths.isNotEmpty()) {
-                            customTruths.random().question
-                        } else {
-                            "Sem perguntas disponíveis"
-                        }
+                        customTruths.randomOrNull()?.question ?: "Sem perguntas"
                     } else {
-                        if (customDares.isNotEmpty()) {
-                            customDares.random().question
-                        } else {
-                            "Sem desafios disponíveis"
-                        }
+                        customDares.randomOrNull()?.question ?: "Sem desafios"
                     }
                     gameState = GameState.RESULT
                 },
                 onBack = { gameState = GameState.CHOOSE }
             )
 
-            GameState.RESULT -> ResultScreen(
-                challenged = challenged,
-                option = selectedOption ?: "",
-                question = currentQuestion,
-                onComplete = { completed ->
-                    coroutineScope.launch {
-                        val score = playerScores.find { it.name == challenged }
-                            ?: PlayerScore(name = challenged)
+            GameState.RESULT -> {
+                val currentPlayer = playerScores.find { it.name == challenged }
 
-                        val updatedScore = if (completed) {
-                            if (selectedOption == "Verdade") {
-                                score.copy(
-                                    points = score.points + ScoreRules.COMPLETE_TRUTH,
-                                    truthsCompleted = score.truthsCompleted + 1
+                ResultScreen(
+                    challenged = challenged,
+                    challenger = challenger,
+                    option = selectedOption ?: "",
+                    question = currentQuestion,
+                    players = players,
+                    onComplete = { completed, points ->
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val score = playerScores.find { it.name == challenged }
+                                    ?: PlayerScore(name = challenged)
+
+                                val updatedScore = if (completed) {
+                                    if (selectedOption == "Verdade") {
+                                        score.copy(
+                                            points = score.points + points,
+                                            truthsCompleted = score.truthsCompleted + 1
+                                        )
+                                    } else {
+                                        score.copy(
+                                            points = score.points + points,
+                                            challengesCompleted = score.challengesCompleted + 1,
+                                            consecutiveChallenges = score.consecutiveChallenges + 1
+                                        )
+                                    }
+                                } else {
+                                    score.copy(
+                                        points = score.points + points,
+                                        refusals = score.refusals + 1,
+                                        consecutiveChallenges = 0
+                                    )
+                                }
+
+                                repository.saveScore(updatedScore)
+
+                                if (completed && selectedOption == "Desafio" && points > 0) {
+                                    val shouldReceive = CardManager.shouldReceiveCard(updatedScore.consecutiveChallenges)
+                                    if (shouldReceive) {
+                                        val card = PowerCards.getRandomCard(updatedScore.consecutiveChallenges)
+                                        if (card != null) {
+                                            withContext(Dispatchers.Main) {
+                                                receivedCard = card
+                                                gameState = GameState.CARD_REVEAL
+                                            }
+                                            return@launch
+                                        }
+                                    }
+                                }
+
+                                withContext(Dispatchers.Main) {
+                                    activeCardForPlayer = null
+                                }
+
+                                repository.addGameHistory(
+                                    challenger = challenger,
+                                    challenged = challenged,
+                                    questionType = selectedOption ?: "",
+                                    question = currentQuestion,
+                                    completed = completed
                                 )
-                            } else {
-                                score.copy(
-                                    points = score.points + ScoreRules.COMPLETE_DARE,
-                                    challengesCompleted = score.challengesCompleted + 1
-                                )
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Erro ao completar", e)
                             }
-                        } else {
-                            score.copy(
-                                points = score.points + ScoreRules.REFUSE_CHALLENGE,
-                                refusals = score.refusals + 1
-                            )
                         }
+                    },
+                    onRecordVideo = { gameState = GameState.VIDEO_CAPTURE },
+                    onNext = { extraTurnPlayer, _ ->
+                        selectedOption = null
+                        currentQuestion = ""
+                        if (extraTurnPlayer != null) {
+                            nextPlayerOverride = extraTurnPlayer
+                        }
+                        gameState = GameState.SCOREBOARD
+                    },
+                    onBackToMenu = {
+                        selectedOption = null
+                        currentQuestion = ""
+                        activeCardForPlayer = null
+                        gameState = GameState.SETUP
+                    },
+                    allowPhotos = gameSettings.allowSavePhotos,
+                    playerCards = currentPlayer?.cards ?: emptyList(),
+                    activeCard = activeCardForPlayer,
+                    onViewCards = {
+                        showingCardsFor = challenged
+                        gameState = GameState.PLAYER_CARDS
+                    },
+                    onStealPoints = { from, to, points ->
+                        scope.launch(Dispatchers.IO) {
+                            val fromScore = playerScores.find { it.name == from }
+                            val toScore = playerScores.find { it.name == to }
+                            if (fromScore != null && toScore != null) {
+                                repository.saveScore(fromScore.copy(points = maxOf(0, fromScore.points - points)))
+                                repository.saveScore(toScore.copy(points = toScore.points + points))
+                            }
+                        }
+                    },
+                    onChooseNextPlayer = { selectedPlayers ->
+                        if (selectedPlayers.size == 2) {
+                            challenger = selectedPlayers[0]
+                            challenged = selectedPlayers[1]
+                        }
+                    }
+                )
+            }
 
-                        repository.saveScore(updatedScore)
-
-                        repository.addGameHistory(
+            GameState.VIDEO_CAPTURE -> VideoRecordScreen(
+                challenger = challenger,
+                challenged = challenged,
+                challengeType = selectedOption ?: "",
+                question = currentQuestion,
+                onVideoRecorded = { uri, duration ->
+                    scope.launch(Dispatchers.IO) {
+                        repository.addVideo(
+                            videoUri = uri.toString(),
                             challenger = challenger,
                             challenged = challenged,
-                            questionType = selectedOption ?: "",
+                            challengeType = selectedOption ?: "",
                             question = currentQuestion,
-                            completed = completed
+                            duration = duration
                         )
-                    }
-                },
-                onTakePhoto = {
-                    gameState = GameState.PHOTO_CAPTURE
-                },
-                onNext = {
-                    selectedOption = null
-                    currentQuestion = ""
-                    gameState = GameState.SCOREBOARD
-                },
-                onBackToMenu = {
-                    selectedOption = null
-                    currentQuestion = ""
-                    gameState = GameState.SETUP
-                },
-                allowPhotos = gameSettings.allowSavePhotos
-            )
-
-            GameState.PHOTO_CAPTURE -> PhotoCaptureScreen(
-                challengedPlayer = challenged,
-                onPhotoSelected = { uri ->
-                    uri?.let {
-                        coroutineScope.launch {
-                            repository.addPhoto(
-                                photoUri = it.toString(),
-                                players = listOf(challenger, challenged),
-                                challengeType = selectedOption ?: "",
-                                description = ""
-                            )
+                        withContext(Dispatchers.Main) {
+                            gameState = GameState.RESULT
                         }
                     }
-                    gameState = GameState.RESULT
                 },
-                onSkip = {
-                    gameState = GameState.RESULT
-                }
+                onSkip = { gameState = GameState.RESULT }
             )
 
             GameState.SCOREBOARD -> ScoreboardScreen(
                 playerScores = playerScores,
                 onBack = { gameState = GameState.SETUP },
-                onContinue = { gameState = GameState.SPINNING }
+                onContinue = {
+                    if (nextPlayerOverride != null) {
+                        challenged = nextPlayerOverride!!
+                        nextPlayerOverride = null
+                    }
+                    gameState = GameState.SPINNING
+                }
             )
+
+            GameState.CARD_REVEAL -> {
+                receivedCard?.let { card ->
+                    CardRevealScreen(
+                        card = card,
+                        playerName = challenged,
+                        onContinue = {
+                            scope.launch(Dispatchers.IO) {
+                                val score = playerScores.find { it.name == challenged }
+                                if (score != null) {
+                                    val updatedScore = score.copy(
+                                        cards = (score.cards + card).toMutableList()
+                                    )
+                                    repository.saveScore(updatedScore)
+                                }
+                                withContext(Dispatchers.Main) {
+                                    receivedCard = null
+                                    activeCardForPlayer = null
+                                    gameState = GameState.SCOREBOARD
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            GameState.PLAYER_CARDS -> {
+                showingCardsFor?.let { playerName ->
+                    val player = playerScores.find { it.name == playerName }
+                    PlayerCardsScreen(
+                        playerName = playerName,
+                        cards = player?.cards ?: emptyList(),
+                        onCardSelected = { card ->
+                            scope.launch(Dispatchers.IO) {
+                                if (player != null) {
+                                    val updatedCards = player.cards.toMutableList()
+                                    updatedCards.remove(card)
+                                    val updatedScore = player.copy(cards = updatedCards)
+                                    repository.saveScore(updatedScore)
+                                    withContext(Dispatchers.Main) {
+                                        activeCardForPlayer = card
+                                    }
+                                }
+                                withContext(Dispatchers.Main) {
+                                    showingCardsFor = null
+                                    gameState = GameState.RESULT
+                                }
+                            }
+                        },
+                        onBack = {
+                            showingCardsFor = null
+                            gameState = GameState.RESULT
+                        }
+                    )
+                }
+            }
         }
 
         if (showResetDialog) {
@@ -314,24 +600,30 @@ fun TruthOrDareGame(
                 onDismissRequest = { showResetDialog = false },
                 title = {
                     Text(
-                        text = "Resetar Pontuações?",
+                        text = "Resetar Tudo?",
                         fontWeight = FontWeight.Black,
                         color = NeonRed
                     )
                 },
                 text = {
-                    Text(
-                        text = "Isso irá zerar todas as pontuações dos jogadores. Esta ação não pode ser desfeita.",
-                        color = Color.White
-                    )
+                    Column {
+                        Text("Isso irá zerar:", color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• Todas as pontuações", color = Color.White)
+                        Text("• Todas as cartas", color = Color.White)
+                        Text("• Lista de jogadores", color = Color.White)
+                    }
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            coroutineScope.launch {
+                            scope.launch(Dispatchers.IO) {
                                 repository.resetAllScores()
+                                withContext(Dispatchers.Main) {
+                                    players = emptyList()
+                                    showResetDialog = false
+                                }
                             }
-                            showResetDialog = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = NeonRed)
                     ) {

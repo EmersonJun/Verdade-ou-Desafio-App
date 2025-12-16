@@ -7,21 +7,31 @@ import com.cafeteria.verdadeoudesafio.models.dareQuestions
 import com.cafeteria.verdadeoudesafio.models.truthQuestions
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class GameRepository(private val database: AppDatabase) {
 
     private val gson = Gson()
 
-    // Inicializar perguntas padrão se necessário
-    suspend fun initializeDefaultQuestions() {
-        val truthCount = database.customTruthDao().getAllTruths().map { it.size }
-        val dareCount = database.customDareDao().getAllDares().map { it.size }
+    // NOVO: Método público para verificar se perguntas existem
+    suspend fun hasTruthsInitialized(): Boolean {
+        return try {
+            allTruths.first().isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
 
-        // Se não tem nenhuma pergunta, adicionar as padrões
+    suspend fun initializeDefaultQuestions() {
+        // Verificar se já existe perguntas antes de inserir
+        if (hasTruthsInitialized()) {
+            return
+        }
+
         truthQuestions.forEach { question ->
             database.customTruthDao().insertTruth(
-                CustomTruthEntity(question = question, createdAt = 0) // createdAt = 0 indica padrão
+                CustomTruthEntity(question = question, createdAt = 0)
             )
         }
 
@@ -32,27 +42,27 @@ class GameRepository(private val database: AppDatabase) {
         }
     }
 
-    // Custom Truths (agora inclui padrões)
+    // Custom Truths
     val allTruths: Flow<List<CustomTruthEntity>> = database.customTruthDao().getAllTruths()
 
     suspend fun addTruth(question: String) {
         database.customTruthDao().insertTruth(
             CustomTruthEntity(
                 question = question,
-                createdAt = System.currentTimeMillis() // Perguntas customizadas têm timestamp real
+                createdAt = System.currentTimeMillis()
             )
         )
     }
 
     suspend fun updateTruth(entity: CustomTruthEntity) {
-        database.customTruthDao().insertTruth(entity) // Insert com replace
+        database.customTruthDao().insertTruth(entity)
     }
 
     suspend fun deleteTruth(entity: CustomTruthEntity) {
         database.customTruthDao().deleteTruth(entity)
     }
 
-    // Custom Dares (agora inclui padrões)
+    // Custom Dares
     val allDares: Flow<List<CustomDareEntity>> = database.customDareDao().getAllDares()
 
     suspend fun addDare(question: String) {
@@ -87,6 +97,36 @@ class GameRepository(private val database: AppDatabase) {
 
     suspend fun deletePhoto(photoId: Long) {
         database.photoDao().deletePhotoById(photoId)
+    }
+
+    // Videos
+    val allVideos: Flow<List<VideoEntity>> = database.videoDao().getAllVideos()
+
+    suspend fun addVideo(
+        videoUri: String,
+        challenger: String,
+        challenged: String,
+        challengeType: String,
+        question: String = "",
+        duration: Long = 0
+    ) {
+        val video = VideoEntity(
+            videoUri = videoUri,
+            challenger = challenger,
+            challenged = challenged,
+            challengeType = challengeType,
+            question = question,
+            duration = duration
+        )
+        database.videoDao().insertVideo(video)
+    }
+
+    suspend fun deleteVideo(video: VideoEntity) {
+        database.videoDao().deleteVideo(video)
+    }
+
+    suspend fun deleteAllVideos() {
+        database.videoDao().deleteAllVideos()
     }
 
     // Game Settings
@@ -151,7 +191,8 @@ class GameRepository(private val database: AppDatabase) {
                     points = it.points,
                     challengesCompleted = it.challengesCompleted,
                     truthsCompleted = it.truthsCompleted,
-                    refusals = it.refusals
+                    refusals = it.refusals,
+                    consecutiveChallenges = it.consecutiveChallenges
                 )
             }
         }
@@ -164,7 +205,8 @@ class GameRepository(private val database: AppDatabase) {
                 points = it.points,
                 challengesCompleted = it.challengesCompleted,
                 truthsCompleted = it.truthsCompleted,
-                refusals = it.refusals
+                refusals = it.refusals,
+                consecutiveChallenges = it.consecutiveChallenges
             )
         }
     }
@@ -175,7 +217,9 @@ class GameRepository(private val database: AppDatabase) {
             points = score.points,
             challengesCompleted = score.challengesCompleted,
             truthsCompleted = score.truthsCompleted,
-            refusals = score.refusals
+            refusals = score.refusals,
+            consecutiveChallenges = score.consecutiveChallenges,
+            cards = gson.toJson(score.cards)
         )
         database.playerScoreDao().insertScore(entity)
     }
