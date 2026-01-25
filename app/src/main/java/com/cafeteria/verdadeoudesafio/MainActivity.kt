@@ -330,7 +330,14 @@ fun TruthOrDareGame(
                     scope.launch(Dispatchers.IO) {
                         newPlayers.forEach { playerName ->
                             if (allScores.none { it.name == playerName }) {
-                                repository.saveScore(PlayerScore(name = playerName))
+                                // Criar jogador com uma carta de teste
+                                val testCard = PowerCards.allCards.first()
+                                repository.saveScore(
+                                    PlayerScore(
+                                        name = playerName,
+                                        cards = mutableListOf(testCard)
+                                    )
+                                )
                             }
                         }
                     }
@@ -397,6 +404,14 @@ fun TruthOrDareGame(
             GameState.RESULT -> {
                 val currentPlayer = playerScores.find { it.name == challenged }
 
+                // DEBUG: Log das cartas
+                LaunchedEffect(currentPlayer) {
+                    Log.d(TAG, "Player: ${currentPlayer?.name}, Cards: ${currentPlayer?.cards?.size ?: 0}")
+                    currentPlayer?.cards?.forEach { card ->
+                        Log.d(TAG, "  - ${card.name}")
+                    }
+                }
+
                 ResultScreen(
                     challenged = challenged,
                     challenger = challenger,
@@ -432,6 +447,11 @@ fun TruthOrDareGame(
 
                                 repository.saveScore(updatedScore)
 
+                                // ✅ LIMPAR CARTA ATIVA APÓS USO
+                                withContext(Dispatchers.Main) {
+                                    activeCardForPlayer = null
+                                }
+
                                 if (completed && selectedOption == "Desafio" && points > 0) {
                                     val shouldReceive = CardManager.shouldReceiveCard(updatedScore.consecutiveChallenges)
                                     if (shouldReceive) {
@@ -444,10 +464,6 @@ fun TruthOrDareGame(
                                             return@launch
                                         }
                                     }
-                                }
-
-                                withContext(Dispatchers.Main) {
-                                    activeCardForPlayer = null
                                 }
 
                                 repository.addGameHistory(
@@ -466,6 +482,9 @@ fun TruthOrDareGame(
                     onNext = { extraTurnPlayer, _ ->
                         selectedOption = null
                         currentQuestion = ""
+                        // ✅ GARANTIR que carta ativa seja limpa
+                        activeCardForPlayer = null
+
                         if (extraTurnPlayer != null) {
                             nextPlayerOverride = extraTurnPlayer
                         }
@@ -474,7 +493,7 @@ fun TruthOrDareGame(
                     onBackToMenu = {
                         selectedOption = null
                         currentQuestion = ""
-                        activeCardForPlayer = null
+                        activeCardForPlayer = null // ✅ Limpar ao voltar
                         gameState = GameState.SETUP
                     },
                     allowPhotos = gameSettings.allowSavePhotos,
@@ -491,6 +510,8 @@ fun TruthOrDareGame(
                             if (fromScore != null && toScore != null) {
                                 repository.saveScore(fromScore.copy(points = maxOf(0, fromScore.points - points)))
                                 repository.saveScore(toScore.copy(points = toScore.points + points))
+
+                                Log.d(TAG, "💰 ROUBO: $to roubou $points pts de $from")
                             }
                         }
                     },
@@ -572,10 +593,15 @@ fun TruthOrDareGame(
                         onCardSelected = { card ->
                             scope.launch(Dispatchers.IO) {
                                 if (player != null) {
+                                    // ✅ REMOVER carta da lista do jogador IMEDIATAMENTE
                                     val updatedCards = player.cards.toMutableList()
                                     updatedCards.remove(card)
                                     val updatedScore = player.copy(cards = updatedCards)
                                     repository.saveScore(updatedScore)
+
+                                    Log.d(TAG, "🎴 CARTA USADA: ${card.name} por $playerName")
+                                    Log.d(TAG, "   Cartas restantes: ${updatedCards.size}")
+
                                     withContext(Dispatchers.Main) {
                                         activeCardForPlayer = card
                                     }

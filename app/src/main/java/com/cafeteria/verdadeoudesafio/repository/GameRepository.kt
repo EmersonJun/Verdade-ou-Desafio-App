@@ -3,12 +3,15 @@ package com.cafeteria.verdadeoudesafio.repository
 import com.cafeteria.verdadeoudesafio.database.*
 import com.cafeteria.verdadeoudesafio.models.GameSettings
 import com.cafeteria.verdadeoudesafio.models.PlayerScore
+import com.cafeteria.verdadeoudesafio.models.PowerCard
 import com.cafeteria.verdadeoudesafio.models.dareQuestions
 import com.cafeteria.verdadeoudesafio.models.truthQuestions
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.lang.reflect.Type
 
 class GameRepository(private val database: AppDatabase) {
 
@@ -185,28 +188,56 @@ class GameRepository(private val database: AppDatabase) {
     // Player Scores
     val allScores: Flow<List<PlayerScore>> = database.playerScoreDao().getAllScores()
         .map { entities ->
-            entities.map {
+            entities.map { entity ->
+                // Parse das cartas do JSON
+                val cardsJson = entity.cards
+                val cards = try {
+                    if (cardsJson.isNotEmpty() && cardsJson != "[]") {
+                        val type = object : TypeToken<List<PowerCard>>() {}.type
+                        gson.fromJson<List<PowerCard>>(cardsJson, type) ?: emptyList()
+                    } else {
+                        emptyList()
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
                 PlayerScore(
-                    name = it.name,
-                    points = it.points,
-                    challengesCompleted = it.challengesCompleted,
-                    truthsCompleted = it.truthsCompleted,
-                    refusals = it.refusals,
-                    consecutiveChallenges = it.consecutiveChallenges
+                    name = entity.name,
+                    points = entity.points,
+                    challengesCompleted = entity.challengesCompleted,
+                    truthsCompleted = entity.truthsCompleted,
+                    refusals = entity.refusals,
+                    consecutiveChallenges = entity.consecutiveChallenges,
+                    cards = cards.toMutableList()
                 )
             }
         }
 
     suspend fun getScoreByName(name: String): PlayerScore? {
         val entity = database.playerScoreDao().getScoreByName(name)
-        return entity?.let {
+        return entity?.let { it ->
+            // Parse das cartas do JSON
+            val cardsJson = it.cards
+            val cards = try {
+                if (cardsJson.isNotEmpty() && cardsJson != "[]") {
+                    val type = object : TypeToken<List<PowerCard>>() {}.type
+                    gson.fromJson<List<PowerCard>>(cardsJson, type) ?: emptyList()
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+
             PlayerScore(
                 name = it.name,
                 points = it.points,
                 challengesCompleted = it.challengesCompleted,
                 truthsCompleted = it.truthsCompleted,
                 refusals = it.refusals,
-                consecutiveChallenges = it.consecutiveChallenges
+                consecutiveChallenges = it.consecutiveChallenges,
+                cards = cards.toMutableList()
             )
         }
     }

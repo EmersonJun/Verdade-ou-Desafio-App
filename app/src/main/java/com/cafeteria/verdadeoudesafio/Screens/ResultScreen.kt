@@ -57,10 +57,18 @@ fun ResultScreen(
     var actualChallenger by remember { mutableStateOf(challenger) }
     var actualChallenged by remember { mutableStateOf(challenged) }
     var showSkipButton by remember { mutableStateOf(false) }
+    var stolenFromPlayer by remember { mutableStateOf<String?>(null) } // ✅ NOVO: Rastrear vítima do roubo
 
-    // Calcular efeitos da carta
+    // ✅ VARIÁVEL CHAVE: Determina se mostra o botão de cartas
+    val shouldShowCardsButton = playerCards.isNotEmpty() && activeCard == null
+
+    // ✅ PROCESSAMENTO ÚNICO DA CARTA - Executar efeitos imediatos
+    var cardProcessed by remember { mutableStateOf(false) }
+
     LaunchedEffect(activeCard) {
-        if (activeCard != null) {
+        if (activeCard != null && !cardProcessed) {
+            cardProcessed = true // Marca como processada para evitar repetição
+
             cardEffect = PowerCardManager.applyCardEffect(
                 card = activeCard,
                 challenged = challenged,
@@ -75,12 +83,22 @@ fun ResultScreen(
                     actualChallenged = challenger
                 }
 
+                // ✅ ROUBO DE PONTOS - Execução imediata com jogador aleatório
                 if (effect.stealFromChallenger && effect.stealPoints > 0) {
                     audioManager.playSound(AudioManager.SoundEffect.SUCCESS)
-                    onStealPoints(challenger, challenged, effect.stealPoints)
+
+                    // Escolher vítima aleatória (qualquer jogador exceto o que ativou a carta)
+                    val possibleVictims = players.filter { it != challenged }
+                    val randomVictim = possibleVictims.randomOrNull()
+
+                    if (randomVictim != null) {
+                        stolenFromPlayer = randomVictim // ✅ Registrar vítima
+                        onStealPoints(randomVictim, challenged, effect.stealPoints)
+                    }
+
                     delay(1500)
                     onNext(null, false)
-                    return@LaunchedEffect
+                    return@LaunchedEffect  // ✅ CORRIGIDO
                 }
 
                 if (effect.choosePlayer) {
@@ -137,49 +155,41 @@ fun ResultScreen(
             )
         }
 
-        // BOTÃO DE CARTAS - MAIOR E MAIS VISÍVEL
-        if (playerCards.isNotEmpty() && activeCard == null) {
-            Button(
+        // ✅ BOTÃO DE CARTAS - CORRIGIDO
+        // Agora mostra quando o jogador TEM cartas E NÃO há carta ativa
+        if (shouldShowCardsButton) {
+            FloatingActionButton(
                 onClick = {
                     audioManager.playSound(AudioManager.SoundEffect.CLICK)
                     onViewCards()
                 },
+                containerColor = Color(0xFFFFD700),
+                contentColor = Color.Black,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
-                    .zIndex(5f)
-                    .width(180.dp)
-                    .height(70.dp)
+                    .zIndex(10f)
+                    .size(80.dp)
                     .shadow(
                         elevation = 20.dp,
                         spotColor = Color(0xFFFFD700),
-                        shape = RoundedCornerShape(16.dp)
-                    ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFD700).copy(alpha = 0.9f)
-                ),
-                shape = RoundedCornerShape(16.dp)
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    )
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "🎴", fontSize = 32.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text(
-                            text = "USAR CARTA",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = "${playerCards.size} disponível${if (playerCards.size > 1) "is" else ""}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black.copy(alpha = 0.7f)
-                        )
-                    }
+                    Text(
+                        text = "🎴",
+                        fontSize = 32.sp
+                    )
+                    Text(
+                        text = "${playerCards.size}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black
+                    )
                 }
             }
         }
@@ -227,6 +237,15 @@ fun ResultScreen(
                             fontWeight = FontWeight.Black,
                             color = activeCard.getColor()
                         )
+                        // ✅ Mostrar vítima se houver roubo
+                        if (stolenFromPlayer != null) {
+                            Text(
+                                text = "Roubando de $stolenFromPlayer",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonRed
+                            )
+                        }
                     }
                 }
             }

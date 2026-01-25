@@ -89,7 +89,7 @@ fun OptionsScreen(
                 )
             }
 
-            // Tabs
+            // Tabs COM ÍCONES
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = DarkCard,
@@ -98,47 +98,47 @@ fun OptionsScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Settings, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("GERAL", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        }
+                    icon = {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Geral",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = {
-                        Text(
-                            "VERDADES",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = if (selectedTab == 1) NeonBlue else Color.Gray
+                    icon = {
+                        Icon(
+                            Icons.Default.QuestionAnswer,
+                            contentDescription = "Verdades",
+                            tint = if (selectedTab == 1) NeonBlue else Color.Gray,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = {
-                        Text(
-                            "DESAFIOS",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = if (selectedTab == 2) NeonRed else Color.Gray
+                    icon = {
+                        Icon(
+                            Icons.Default.EmojiEvents,
+                            contentDescription = "Desafios",
+                            tint = if (selectedTab == 2) NeonRed else Color.Gray,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 )
                 Tab(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.VideoLibrary, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("VÍDEOS", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
+                    icon = {
+                        Icon(
+                            Icons.Default.VideoLibrary,
+                            contentDescription = "Vídeos",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 )
             }
