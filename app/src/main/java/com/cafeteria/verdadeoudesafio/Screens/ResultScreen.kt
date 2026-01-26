@@ -57,17 +57,15 @@ fun ResultScreen(
     var actualChallenger by remember { mutableStateOf(challenger) }
     var actualChallenged by remember { mutableStateOf(challenged) }
     var showSkipButton by remember { mutableStateOf(false) }
-    var stolenFromPlayer by remember { mutableStateOf<String?>(null) } // ✅ NOVO: Rastrear vítima do roubo
+    var stolenFromPlayer by remember { mutableStateOf<String?>(null) }
 
-    // ✅ VARIÁVEL CHAVE: Determina se mostra o botão de cartas
     val shouldShowCardsButton = playerCards.isNotEmpty() && activeCard == null
 
-    // ✅ PROCESSAMENTO ÚNICO DA CARTA - Executar efeitos imediatos
     var cardProcessed by remember { mutableStateOf(false) }
 
     LaunchedEffect(activeCard) {
         if (activeCard != null && !cardProcessed) {
-            cardProcessed = true // Marca como processada para evitar repetição
+            cardProcessed = true
 
             cardEffect = PowerCardManager.applyCardEffect(
                 card = activeCard,
@@ -83,22 +81,20 @@ fun ResultScreen(
                     actualChallenged = challenger
                 }
 
-                // ✅ ROUBO DE PONTOS - Execução imediata com jogador aleatório
                 if (effect.stealFromChallenger && effect.stealPoints > 0) {
                     audioManager.playSound(AudioManager.SoundEffect.SUCCESS)
 
-                    // Escolher vítima aleatória (qualquer jogador exceto o que ativou a carta)
                     val possibleVictims = players.filter { it != challenged }
                     val randomVictim = possibleVictims.randomOrNull()
 
                     if (randomVictim != null) {
-                        stolenFromPlayer = randomVictim // ✅ Registrar vítima
+                        stolenFromPlayer = randomVictim
                         onStealPoints(randomVictim, challenged, effect.stealPoints)
                     }
 
                     delay(1500)
                     onNext(null, false)
-                    return@LaunchedEffect  // ✅ CORRIGIDO
+                    return@LaunchedEffect
                 }
 
                 if (effect.choosePlayer) {
@@ -136,7 +132,6 @@ fun ResultScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Botão voltar
         IconButton(
             onClick = {
                 audioManager.playSound(AudioManager.SoundEffect.CLICK)
@@ -155,8 +150,6 @@ fun ResultScreen(
             )
         }
 
-        // ✅ BOTÃO DE CARTAS - CORRIGIDO
-        // Agora mostra quando o jogador TEM cartas E NÃO há carta ativa
         if (shouldShowCardsButton) {
             FloatingActionButton(
                 onClick = {
@@ -193,8 +186,6 @@ fun ResultScreen(
                 }
             }
         }
-
-        // Indicador de carta ativa
         if (activeCard != null) {
             Card(
                 modifier = Modifier
@@ -237,7 +228,6 @@ fun ResultScreen(
                             fontWeight = FontWeight.Black,
                             color = activeCard.getColor()
                         )
-                        // ✅ Mostrar vítima se houver roubo
                         if (stolenFromPlayer != null) {
                             Text(
                                 text = "Roubando de $stolenFromPlayer",
@@ -250,8 +240,6 @@ fun ResultScreen(
                 }
             }
         }
-
-        // Animação de pontos
         AnimatedVisibility(
             visible = showPointsAnimation,
             enter = slideInVertically(
@@ -298,8 +286,6 @@ fun ResultScreen(
                 )
             }
         }
-
-        // Conteúdo principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -308,7 +294,6 @@ fun ResultScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Título
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(bottom = 40.dp)
@@ -335,7 +320,6 @@ fun ResultScreen(
                 )
             }
 
-            // Card com pergunta
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkCard),
@@ -400,7 +384,7 @@ fun ResultScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Botões de ação
+
             AnimatedVisibility(
                 visible = showActions,
                 enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn()
@@ -409,7 +393,7 @@ fun ResultScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // BOTÃO DE PULAR (Carta de Skip)
+
                     if (showSkipButton) {
                         Button(
                             onClick = {
@@ -445,7 +429,7 @@ fun ResultScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    // Botão Completou
+
                     val basePoints = if (option == "Verdade") ScoreRules.COMPLETE_TRUTH else ScoreRules.COMPLETE_DARE
                     val finalPoints = (basePoints * (cardEffect?.pointsMultiplier ?: 1f)).toInt()
 
@@ -476,7 +460,7 @@ fun ResultScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Botão Vídeo
+
                     if (allowPhotos && option == "Desafio") {
                         OutlinedButton(
                             onClick = {
@@ -512,7 +496,6 @@ fun ResultScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    // Botão Recusou
                     val refusalPoints = if (cardEffect?.hasShield == true) 0 else ScoreRules.REFUSE_CHALLENGE
 
                     OutlinedButton(
@@ -546,8 +529,6 @@ fun ResultScreen(
                 }
             }
         }
-
-        // Dialog de seleção de jogador
         if (showPlayerSelection) {
             PlayerSelectionDialog(
                 players = players.filter { it != actualChallenged },
