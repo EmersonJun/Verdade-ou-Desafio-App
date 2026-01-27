@@ -86,7 +86,6 @@ data class GameHistoryEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// Type Converters para Room
 class Converters {
     private val gson = Gson()
 
