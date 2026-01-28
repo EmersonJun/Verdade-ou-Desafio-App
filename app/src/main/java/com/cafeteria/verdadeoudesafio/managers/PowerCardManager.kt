@@ -1,6 +1,3 @@
-// ============================================
-// 1. PowerCardManager.kt - NOVO ARQUIVO
-// ============================================
 package com.cafeteria.verdadeoudesafio.managers
 
 import com.cafeteria.verdadeoudesafio.models.*

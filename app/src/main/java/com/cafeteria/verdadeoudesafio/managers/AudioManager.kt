@@ -63,10 +63,8 @@ class AudioManager private constructor(private val context: Context) {
 
     private fun loadSounds() {
         try {
-            // IMPORTANTE: Descomente essas linhas quando adicionar os arquivos de som
             soundMap[SoundEffect.CLICK] = soundPool?.load(context, R.raw.click, 1) ?: 0
             soundMap[SoundEffect.SPIN_START] = soundPool?.load(context, R.raw.spin_start, 1) ?: 0
-            // soundMap[SoundEffect.SPIN_LOOP] = soundPool?.load(context, R.raw.spin_loop, 1) ?: 0
             soundMap[SoundEffect.SUCCESS] = soundPool?.load(context, R.raw.success, 1) ?: 0
             soundMap[SoundEffect.FAIL] = soundPool?.load(context, R.raw.fail, 1) ?: 0
             soundMap[SoundEffect.POINT_GAIN] = soundPool?.load(context, R.raw.point_gain, 1) ?: 0
@@ -111,7 +109,6 @@ class AudioManager private constructor(private val context: Context) {
         }
     }
 
-    // Versão alternativa que aceita URL/Asset
     fun startBackgroundMusicFromAsset(assetPath: String) {
         if (!musicEnabled) return
 
