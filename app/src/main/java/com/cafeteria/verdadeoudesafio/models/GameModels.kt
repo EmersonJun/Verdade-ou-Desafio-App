@@ -10,7 +10,7 @@ enum class GameState {
     QUESTION_TYPE,
     RESULT,
     SCOREBOARD,
-    VIDEO_CAPTURE,  // MUDOU DE PHOTO_CAPTURE
+    VIDEO_CAPTURE,
     CARD_REVEAL,
     PLAYER_CARDS
 }
@@ -21,8 +21,8 @@ data class PlayerScore(
     var challengesCompleted: Int = 0,
     var truthsCompleted: Int = 0,
     var refusals: Int = 0,
-    val cards: MutableList<PowerCard> = mutableListOf(),  // NOVO
-    var consecutiveChallenges: Int = 0                     // NOVO
+    val cards: MutableList<PowerCard> = mutableListOf(),
+    var consecutiveChallenges: Int = 0
 )
 
 data class PhotoRecord(
@@ -45,7 +45,6 @@ data class GameSettings(
     var hapticEnabled: Boolean = true
 )
 
-// Pontuação sugerida
 object ScoreRules {
     const val COMPLETE_DARE = 5
     const val COMPLETE_TRUTH = 3
@@ -54,11 +53,10 @@ object ScoreRules {
 }
 
 object CardManager {
-    // Chance base aumenta conforme mais desafios são completados
     fun shouldReceiveCard(challengesCompleted: Int): Boolean {
-        val baseChance = 15 // 15% base
-        val bonusChance = minOf(challengesCompleted * 5, 45) // +5% por desafio, máx 45%
-        val totalChance = baseChance + bonusChance // Máximo 60%
+        val baseChance = 15
+        val bonusChance = minOf(challengesCompleted * 5, 45)
+        val totalChance = baseChance + bonusChance
 
         return (0..100).random() <= totalChance
     }
