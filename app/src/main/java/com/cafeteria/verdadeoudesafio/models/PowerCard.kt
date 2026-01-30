@@ -163,13 +163,12 @@ object PowerCards {
     )
 
     fun getRandomCard(challengesCompleted: Int): PowerCard? {
-        // PARA TESTES: 100% de chance de receber carta
         val rarityRoll = (0..100).random()
         val rarity = when {
-            rarityRoll <= 60 -> CardRarity.COMMON      // 60%
-            rarityRoll <= 90 -> CardRarity.RARE        // 30%
-            rarityRoll <= 98 -> CardRarity.EPIC        // 8%
-            else -> CardRarity.LEGENDARY               // 2%
+            rarityRoll <= 60 -> CardRarity.COMMON
+            rarityRoll <= 90 -> CardRarity.RARE
+            rarityRoll <= 98 -> CardRarity.EPIC
+            else -> CardRarity.LEGENDARY
         }
 
         val availableCards = allCards.filter { it.rarity == rarity }
