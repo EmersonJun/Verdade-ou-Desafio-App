@@ -17,7 +17,6 @@ class GameRepository(private val database: AppDatabase) {
 
     private val gson = Gson()
 
-    // NOVO: Método público para verificar se perguntas existem
     suspend fun hasTruthsInitialized(): Boolean {
         return try {
             allTruths.first().isNotEmpty()
@@ -27,7 +26,6 @@ class GameRepository(private val database: AppDatabase) {
     }
 
     suspend fun initializeDefaultQuestions() {
-        // Verificar se já existe perguntas antes de inserir
         if (hasTruthsInitialized()) {
             return
         }
@@ -102,7 +100,6 @@ class GameRepository(private val database: AppDatabase) {
         database.photoDao().deletePhotoById(photoId)
     }
 
-    // Videos
     val allVideos: Flow<List<VideoEntity>> = database.videoDao().getAllVideos()
 
     suspend fun addVideo(
@@ -132,7 +129,6 @@ class GameRepository(private val database: AppDatabase) {
         database.videoDao().deleteAllVideos()
     }
 
-    // Game Settings
     val settings: Flow<GameSettings?> = database.gameSettingsDao().getSettings()
         .map { entity ->
             entity?.let {
@@ -185,11 +181,9 @@ class GameRepository(private val database: AppDatabase) {
         database.gameSettingsDao().insertSettings(current.copy(bottleImageUri = uri))
     }
 
-    // Player Scores
     val allScores: Flow<List<PlayerScore>> = database.playerScoreDao().getAllScores()
         .map { entities ->
             entities.map { entity ->
-                // Parse das cartas do JSON
                 val cardsJson = entity.cards
                 val cards = try {
                     if (cardsJson.isNotEmpty() && cardsJson != "[]") {
@@ -217,7 +211,6 @@ class GameRepository(private val database: AppDatabase) {
     suspend fun getScoreByName(name: String): PlayerScore? {
         val entity = database.playerScoreDao().getScoreByName(name)
         return entity?.let { it ->
-            // Parse das cartas do JSON
             val cardsJson = it.cards
             val cards = try {
                 if (cardsJson.isNotEmpty() && cardsJson != "[]") {
