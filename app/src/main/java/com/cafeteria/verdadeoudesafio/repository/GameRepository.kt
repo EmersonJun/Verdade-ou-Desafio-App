@@ -43,7 +43,6 @@ class GameRepository(private val database: AppDatabase) {
         }
     }
 
-    // Custom Truths
     val allTruths: Flow<List<CustomTruthEntity>> = database.customTruthDao().getAllTruths()
 
     suspend fun addTruth(question: String) {
@@ -63,7 +62,7 @@ class GameRepository(private val database: AppDatabase) {
         database.customTruthDao().deleteTruth(entity)
     }
 
-    // Custom Dares
+
     val allDares: Flow<List<CustomDareEntity>> = database.customDareDao().getAllDares()
 
     suspend fun addDare(question: String) {
@@ -83,7 +82,6 @@ class GameRepository(private val database: AppDatabase) {
         database.customDareDao().deleteDare(entity)
     }
 
-    // Photos
     val allPhotos: Flow<List<PhotoEntity>> = database.photoDao().getAllPhotos()
 
     suspend fun addPhoto(photoUri: String, players: List<String>, challengeType: String, description: String = "") {
@@ -256,7 +254,6 @@ class GameRepository(private val database: AppDatabase) {
         database.playerScoreDao().resetAllScores()
     }
 
-    // Game History
     val gameHistory: Flow<List<GameHistoryEntity>> = database.gameHistoryDao().getAllHistory()
 
     suspend fun addGameHistory(
