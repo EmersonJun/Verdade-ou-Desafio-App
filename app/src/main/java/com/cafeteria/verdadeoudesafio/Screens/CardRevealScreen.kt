@@ -74,7 +74,6 @@ fun CardRevealScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ) {
-            // Texto de conquista
             AnimatedVisibility(
                 visible = showCard,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { -50 })
@@ -100,14 +99,12 @@ fun CardRevealScreen(
                 }
             }
 
-            // Carta com animação
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .scale(scale)
                     .rotate(rotation)
             ) {
-                // Brilho ao redor da carta
                 Box(
                     modifier = Modifier
                         .width(300.dp)
@@ -124,7 +121,6 @@ fun CardRevealScreen(
                         )
                 )
 
-                // Carta
                 Card(
                     modifier = Modifier
                         .width(280.dp)
@@ -167,7 +163,6 @@ fun CardRevealScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Raridade
                             Text(
                                 text = card.rarity.name,
                                 fontSize = 14.sp,
@@ -178,7 +173,6 @@ fun CardRevealScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Ícone do tipo
                             Text(
                                 text = when (card.type) {
                                     CardType.TRUTH -> "🔵"
@@ -190,7 +184,6 @@ fun CardRevealScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Nome da carta
                             Text(
                                 text = card.name,
                                 fontSize = 24.sp,
@@ -205,7 +198,6 @@ fun CardRevealScreen(
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Descrição
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -232,7 +224,6 @@ fun CardRevealScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Tipo da carta
                             Text(
                                 text = when (card.type) {
                                     CardType.TRUTH -> "VERDADE"
@@ -250,7 +241,6 @@ fun CardRevealScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Botão continuar
             AnimatedVisibility(
                 visible = showButton,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { 50 })
