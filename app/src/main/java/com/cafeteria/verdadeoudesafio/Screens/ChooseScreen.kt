@@ -26,7 +26,6 @@ fun ChooseScreen(challenged: String, onChoice: (String) -> Unit, onBack: () -> U
     val audioManager = remember { AudioManager.getInstance(context) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Efeito de luz neon de fundo
         Box(
             modifier = Modifier
                 .fillMaxSize()
