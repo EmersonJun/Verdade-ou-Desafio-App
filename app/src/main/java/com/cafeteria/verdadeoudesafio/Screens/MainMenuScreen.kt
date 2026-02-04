@@ -38,7 +38,6 @@ fun MainMenuScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Botão Reset no canto superior direito
         IconButton(
             onClick = onReset,
             modifier = Modifier
@@ -135,7 +134,6 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Texto informativo sobre reset
             Text(
                 text = "Toque no ícone ↻ para resetar pontuações",
                 fontSize = 12.sp,
