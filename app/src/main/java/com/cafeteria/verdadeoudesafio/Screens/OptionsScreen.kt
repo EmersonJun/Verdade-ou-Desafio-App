@@ -57,7 +57,6 @@ fun OptionsScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,7 +88,6 @@ fun OptionsScreen(
                 )
             }
 
-            // Tabs COM ÍCONES
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = DarkCard,
@@ -143,7 +141,6 @@ fun OptionsScreen(
                 )
             }
 
-            // Content
             when (selectedTab) {
                 0 -> GeneralSettingsTab(
                     bottleImageUri = bottleImageUri,
