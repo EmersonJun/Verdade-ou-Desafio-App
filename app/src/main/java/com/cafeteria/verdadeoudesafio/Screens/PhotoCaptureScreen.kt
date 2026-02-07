@@ -48,7 +48,6 @@ fun PhotoCaptureScreen(
     var pendingAction by remember { mutableStateOf<String?>(null) }
     var showSuccessMessage by remember { mutableStateOf(false) }
 
-    // Gerenciador de permissões
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     val storagePermissionState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -57,7 +56,6 @@ fun PhotoCaptureScreen(
         rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    // Launcher para galeria
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -66,12 +64,10 @@ fun PhotoCaptureScreen(
         }
     }
 
-    // Launcher para câmera
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && photoUri != null && tempPhotoFile != null) {
-            // Salvar foto na galeria
             val savedUri = savePhotoToGallery(context, tempPhotoFile!!)
             if (savedUri != null) {
                 showSuccessMessage = true
@@ -79,7 +75,6 @@ fun PhotoCaptureScreen(
             } else {
                 onPhotoSelected(photoUri)
             }
-            // Limpar arquivo temporário
             tempPhotoFile?.delete()
             tempPhotoFile = null
         } else {
@@ -188,7 +183,6 @@ fun PhotoCaptureScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Botão Tirar Foto
             Button(
                 onClick = {
                     pendingAction = "camera"
@@ -215,7 +209,6 @@ fun PhotoCaptureScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botão Escolher da Galeria
             OutlinedButton(
                 onClick = {
                     pendingAction = "gallery"
@@ -242,7 +235,6 @@ fun PhotoCaptureScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão Pular
             TextButton(
                 onClick = onSkip,
                 modifier = Modifier.fillMaxWidth()
@@ -260,7 +252,6 @@ fun PhotoCaptureScreen(
                 )
             }
 
-            // Mensagem de sucesso
             if (showSuccessMessage) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -273,7 +264,6 @@ fun PhotoCaptureScreen(
         }
     }
 
-    // Diálogo de Consentimento
     if (showConsentDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -345,7 +335,6 @@ fun PhotoCaptureScreen(
     }
 }
 
-// Função para salvar foto na galeria
 private fun savePhotoToGallery(context: Context, photoFile: File): Uri? {
     return try {
         val bitmap = BitmapFactory.decodeStream(FileInputStream(photoFile))
