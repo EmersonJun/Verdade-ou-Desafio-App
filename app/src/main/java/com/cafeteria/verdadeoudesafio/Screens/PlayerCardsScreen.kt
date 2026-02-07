@@ -41,7 +41,6 @@ fun PlayerCardsScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,7 +120,6 @@ fun PlayerCardsScreen(
             }
         }
 
-        // Dialog de confirmação
         selectedCard?.let { card ->
             AlertDialog(
                 onDismissRequest = { selectedCard = null },
