@@ -36,7 +36,6 @@ fun PlayersRevealScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Retângulo AZUL - METADE SUPERIOR - Entra da ESQUERDA
         AnimatedVisibility(
             visible = showBlue,
             enter = slideInHorizontally(
@@ -78,7 +77,6 @@ fun PlayersRevealScreen(
             }
         }
 
-        // Retângulo VERMELHO - METADE INFERIOR - Entra da DIREITA
         AnimatedVisibility(
             visible = showRed,
             enter = slideInHorizontally(
