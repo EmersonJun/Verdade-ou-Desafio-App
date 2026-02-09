@@ -51,7 +51,6 @@ fun ScoreboardScreen(
                 .fillMaxSize()
                 .padding(24.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -82,13 +81,11 @@ fun ScoreboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Podium para top 3
             if (sortedPlayers.isNotEmpty()) {
                 PodiumView(sortedPlayers.take(3))
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Lista completa
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -112,7 +109,6 @@ fun ScoreboardScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botão continuar
             Button(
                 onClick = onContinue,
                 modifier = Modifier
@@ -140,17 +136,14 @@ fun PodiumView(topPlayers: List<PlayerScore>) {
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {
-        // 2º lugar
         if (topPlayers.size > 1) {
             PodiumPlace(2, topPlayers[1], 140.dp, Color(0xFFC0C0C0))
         }
 
-        // 1º lugar
         if (topPlayers.isNotEmpty()) {
             PodiumPlace(1, topPlayers[0], 180.dp, Color(0xFFFFD700))
         }
 
-        // 3º lugar
         if (topPlayers.size > 2) {
             PodiumPlace(3, topPlayers[2], 120.dp, Color(0xFFCD7F32))
         }
@@ -219,7 +212,6 @@ fun PodiumPlace(position: Int, player: PlayerScore, height: Dp, color: Color) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Pedestal
         Box(
             modifier = Modifier
                 .width(80.dp)
@@ -262,7 +254,6 @@ fun PlayerScoreCard(position: Int, playerScore: PlayerScore, isLeader: Boolean) 
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Posição
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -282,7 +273,6 @@ fun PlayerScoreCard(position: Int, playerScore: PlayerScore, isLeader: Boolean) 
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Info do jogador
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = playerScore.name,
@@ -305,7 +295,6 @@ fun PlayerScoreCard(position: Int, playerScore: PlayerScore, isLeader: Boolean) 
                 }
             }
 
-            // Pontos
             Text(
                 text = "${playerScore.points}",
                 fontSize = 24.sp,
