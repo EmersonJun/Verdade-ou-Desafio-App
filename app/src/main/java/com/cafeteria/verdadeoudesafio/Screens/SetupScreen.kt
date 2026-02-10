@@ -37,7 +37,6 @@ fun SetupScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Botão voltar fixo no topo
         Row(
             modifier = Modifier
                 .fillMaxWidth()
