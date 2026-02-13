@@ -49,7 +49,6 @@ fun VideosListScreen(
             .fillMaxSize()
             .background(DarkBackground)
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,7 +122,6 @@ fun VideosListScreen(
         }
     }
 
-    // Dialog de confirmação de exclusão
     if (videoToDelete != null) {
         AlertDialog(
             onDismissRequest = { videoToDelete = null },
@@ -263,12 +261,10 @@ private fun playVideo(context: Context, videoUri: String) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        // Verificar se existe um app que pode reproduzir vídeo
         val packageManager = context.packageManager
         if (intent.resolveActivity(packageManager) != null) {
             context.startActivity(intent)
         } else {
-            // Tentar com chooser como fallback
             val chooser = Intent.createChooser(intent, "Reproduzir vídeo com")
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
