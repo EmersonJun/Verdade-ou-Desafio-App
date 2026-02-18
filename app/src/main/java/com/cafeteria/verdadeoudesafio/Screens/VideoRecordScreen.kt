@@ -80,7 +80,6 @@ fun VideoRecordScreen(
         )
     }
 
-    // Timer de gravação
     LaunchedEffect(isRecording) {
         if (isRecording) {
             while (isRecording) {
@@ -92,7 +91,6 @@ fun VideoRecordScreen(
         }
     }
 
-    // Verificar permissões
     LaunchedEffect(permissions.allPermissionsGranted) {
         hasPermission = permissions.allPermissionsGranted
     }
@@ -119,7 +117,6 @@ fun VideoRecordScreen(
                 activeRecording = capture.output
                     .prepareRecording(context, mediaStoreOutput)
                     .apply {
-                        // Verificar permissão de áudio antes de habilitar
                         if (audioPermission.status.isGranted) {
                             withAudioEnabled()
                         }
@@ -133,7 +130,6 @@ fun VideoRecordScreen(
                                 isRecording = false
                                 if (!event.hasError()) {
                                     event.outputResults.outputUri.let { uri ->
-                                        // Obter duração do vídeo
                                         thread {
                                             try {
                                                 val retriever = MediaMetadataRetriever()
@@ -168,7 +164,6 @@ fun VideoRecordScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             !hasPermission -> {
-                // Tela de solicitação de permissão
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -230,7 +225,6 @@ fun VideoRecordScreen(
             }
 
             else -> {
-                // Preview da câmera
                 AndroidView(
                     factory = { ctx ->
                         PreviewView(ctx).apply {
@@ -270,13 +264,11 @@ fun VideoRecordScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Overlay com informações
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.3f))
                 ) {
-                    // Header
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -308,7 +300,6 @@ fun VideoRecordScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Timer (quando gravando)
                     AnimatedVisibility(
                         visible = isRecording,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -342,7 +333,6 @@ fun VideoRecordScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Controles
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -350,7 +340,6 @@ fun VideoRecordScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Botão pular
                         IconButton(
                             onClick = onSkip,
                             modifier = Modifier.size(60.dp)
@@ -363,7 +352,6 @@ fun VideoRecordScreen(
                             )
                         }
 
-                        // Botão gravar/parar
                         Button(
                             onClick = {
                                 if (isRecording) {
@@ -386,7 +374,6 @@ fun VideoRecordScreen(
                             )
                         }
 
-                        // Espaço vazio para simetria
                         Spacer(modifier = Modifier.size(60.dp))
                     }
                 }
