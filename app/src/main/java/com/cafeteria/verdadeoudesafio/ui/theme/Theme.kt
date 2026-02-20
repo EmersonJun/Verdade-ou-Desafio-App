@@ -14,20 +14,6 @@ import com.cafeteria.verdadeoudesafio.ui.theme.DarkCard
 import com.cafeteria.verdadeoudesafio.ui.theme.NeonBlue
 import com.cafeteria.verdadeoudesafio.ui.theme.NeonRed
 import com.cafeteria.verdadeoudesafio.ui.theme.NeonRedGlow
-
-// ============================================
-// CORES DO JOGO VERDADE OU DESAFIO
-// ============================================
-// Cores já definidas em Color.kt:
-// val NeonRed = Color(0xFFFF0040)
-// val NeonRedGlow = Color(0xFFFF1744)
-// val DarkBackground = Color(0xFF0A0A0A)
-// val DarkCard = Color(0xFF1A1A1A)
-// val NeonBlue = Color(0xFF00D4FF)
-
-// ============================================
-// ESQUEMA DE CORES PADRÃO
-// ============================================
 private val DarkColorScheme = darkColorScheme(
     primary = NeonRed,
     secondary = NeonBlue,
@@ -47,7 +33,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun VerdadeOuDesafioTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Desativado para manter as cores do jogo
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
