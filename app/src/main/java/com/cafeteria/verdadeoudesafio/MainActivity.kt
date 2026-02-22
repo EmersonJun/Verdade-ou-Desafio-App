@@ -93,7 +93,6 @@ fun GameScreen(
     var loadError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Inicialização
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
             try {
