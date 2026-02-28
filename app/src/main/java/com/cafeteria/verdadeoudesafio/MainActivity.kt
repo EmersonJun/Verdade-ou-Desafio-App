@@ -98,7 +98,6 @@ fun GameScreen(
             try {
                 Log.d(TAG, "Inicializando...")
 
-                // Inicializar perguntas apenas se necessário
                 if (!repository.hasTruthsInitialized()) {
                     Log.d(TAG, "Inicializando perguntas padrão...")
                     repository.initializeDefaultQuestions()
@@ -218,7 +217,6 @@ fun TruthOrDareGame(
 
     val scope = rememberCoroutineScope()
 
-    // Carregar configurações
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
             try {
@@ -234,7 +232,6 @@ fun TruthOrDareGame(
         }
     }
 
-    // Atualizar audio
     LaunchedEffect(gameSettings) {
         audioManager.soundEnabled = gameSettings.soundEnabled
         audioManager.musicEnabled = gameSettings.musicEnabled
