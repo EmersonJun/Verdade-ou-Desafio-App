@@ -400,7 +400,6 @@ fun TruthOrDareGame(
             GameState.RESULT -> {
                 val currentPlayer = playerScores.find { it.name == challenged }
 
-                // DEBUG: Log das cartas
                 LaunchedEffect(currentPlayer) {
                     Log.d(TAG, "Player: ${currentPlayer?.name}, Cards: ${currentPlayer?.cards?.size ?: 0}")
                     currentPlayer?.cards?.forEach { card ->
