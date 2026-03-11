@@ -477,7 +477,7 @@ fun TruthOrDareGame(
                     onNext = { extraTurnPlayer, _ ->
                         selectedOption = null
                         currentQuestion = ""
-                        // ✅ GARANTIR que carta ativa seja limpa
+
                         activeCardForPlayer = null
 
                         if (extraTurnPlayer != null) {
@@ -488,7 +488,7 @@ fun TruthOrDareGame(
                     onBackToMenu = {
                         selectedOption = null
                         currentQuestion = ""
-                        activeCardForPlayer = null // ✅ Limpar ao voltar
+                        activeCardForPlayer = null
                         gameState = GameState.SETUP
                     },
                     allowPhotos = gameSettings.allowSavePhotos,
@@ -588,7 +588,6 @@ fun TruthOrDareGame(
                         onCardSelected = { card ->
                             scope.launch(Dispatchers.IO) {
                                 if (player != null) {
-                                    // ✅ REMOVER carta da lista do jogador IMEDIATAMENTE
                                     val updatedCards = player.cards.toMutableList()
                                     updatedCards.remove(card)
                                     val updatedScore = player.copy(cards = updatedCards)
